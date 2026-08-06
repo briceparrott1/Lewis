@@ -19,12 +19,12 @@ boards, filters and ranks against the resume, and returns matches the user can s
 | Agent LLM | Claude `claude-sonnet-5` | Query understanding + resume-based ranking |
 | Frontend | React + Vite + TypeScript | Signup, chat, saved-jobs views |
 | Database | Postgres + SQLAlchemy 2.0 + Alembic | Migrations via Alembic |
-| Auth | JWT access token; bcrypt/argon2 hash | Minimal, no refresh-token rotation in v1 |
+| Auth | JWT in httpOnly cookie; argon2id hash; 7-day expiry | Single-origin, no refresh token in v1 |
 | Resume ingestion | PDF/DOCX upload → server-side text extraction | `pypdf`, `python-docx` |
 | Job sources | Greenhouse + Ashby public board APIs | No auth required |
 | Company universe | Curated static seed list | Hand-curated board tokens; grows manually |
 | Local dev | Docker Compose | `docker compose up` → api + web + postgres |
-| Prod | Railway | api service + static web + managed Postgres |
+| Prod | Railway | Single service: FastAPI serves SPA + `/api`, managed Postgres |
 
 ## 3. Key architecture decisions & rationale
 
@@ -231,7 +231,97 @@ class RankedJob(Job):
 - Verified live (2026-08-06): both APIs return the posting URL and full
   description in the JSON with no auth — confirming URL-based `job_key` is in scope.
 
-## 8. Out of scope for v1 (explicitly deferred)
+## 8. Backend — detailed design
+
+### 8.1 Deployment & origin model
+
+Single origin: FastAPI serves **both** the built React SPA and the `/api/*` routes
+under one domain. Routers own `/api/*`; a catch-all returns `index.html` for
+client-side routing. Dev preserves same-origin via Vite's proxy (`/api` → FastAPI).
+One Railway service, one multi-stage Dockerfile (build React → copy `dist` into the
+API image). Consequence: **no CORS** and first-party cookies.
+
+### 8.2 Auth
+
+- **JWT in an httpOnly, Secure, SameSite=Lax cookie.** The token is a signed JWT
+  (`{sub: user_id, exp: now+7d}`); the browser stores and auto-attaches it; JS cannot
+  read it (XSS-safe). "Bearer vs cookie" is only *transport* — same JWT, carried in a
+  cookie instead of an `Authorization` header.
+- **argon2id** password hashing (`argon2-cffi`).
+- **7-day expiry, no refresh token.** On expiry the user logs in again.
+- **CSRF:** neutralized by `SameSite=Lax` (blocks the cookie on cross-site POSTs).
+- A FastAPI dependency reads the cookie, verifies signature+expiry, injects the
+  current user; missing/expired → 401 → frontend routes to login.
+
+E2E: signup/login → server sets `Set-Cookie: access_token=<JWT>; HttpOnly; Secure;
+SameSite=Lax; Max-Age=604800` → every later request (incl. the `/api/chat` POST)
+carries the cookie automatically → auth dependency yields `user_id`, which scopes the
+agent run's resume/prefs/served-jobs.
+
+### 8.3 Route contracts (under `/api`)
+
+| Method + path | Body / params | Returns |
+|---|---|---|
+| `POST /api/auth/signup` | `{email, password}` | sets cookie, `{user}` |
+| `POST /api/auth/login` | `{email, password}` | sets cookie, `{user}` |
+| `POST /api/auth/logout` | — | clears cookie |
+| `GET /api/auth/me` | (cookie) | `{user}` or 401 |
+| `GET /api/profile` | (cookie) | `{resume_text, prefs}` |
+| `POST /api/profile/resume` | multipart file (PDF/DOCX) | parse → store text → `{resume_text}` |
+| `PUT /api/profile/prefs` | `{raw_prefs_text}` | store → `{prefs}` |
+| `POST /api/chat` | `{message, conversation_id}` | **SSE stream** |
+| `GET /api/jobs` | (cookie) | `[SavedJob]` |
+| `POST /api/jobs` | `RankedJob` payload | save → `{saved_job}` |
+| `DELETE /api/jobs/{id}` | — | unsave |
+| `GET /api/health` | — | `{status}` |
+
+Resolved judgment calls: resume stored as **extracted text only** (uploaded file
+discarded); saving a job = client **POSTs the `RankedJob` payload** it already has
+(no server re-fetch); prefs submitted as **`raw_prefs_text`** and structured by the
+**agent** during `parse_query` (single source of truth for parsing).
+
+### 8.4 SSE streaming (`POST /api/chat`)
+
+- `StreamingResponse`, `media_type="text/event-stream"`; frames as
+  `event: <type>\ndata: <json>\n\n` (types: `status`/`clarify`/`result`/`done`).
+- `/chat` is a **POST with a body**, so the client uses **`fetch()` + a
+  `ReadableStream` reader**, not native `EventSource` (GET-only). Cookie rides on the
+  POST automatically.
+- Backend runs the graph via `astream`, translating node emissions into frames.
+- **`status` events double as keep-alive** through a 30s–2min scan (no idle timeout).
+- **Disconnect:** on `request.is_disconnected()` cancel the graph task; checkpointer
+  keeps last committed state; `record_served` only fires on completion, so an
+  abandoned run serves nothing.
+
+### 8.5 Conversation threads
+
+- Client generates a `conversation_id` (uuid) per chat, sends it every message.
+- Server derives **`thread_id = f"{user_id}:{conversation_id}"`** — namespaced by the
+  authenticated user so no one can resume another user's thread.
+- Same `conversation_id` → checkpointer resumes the interrupted graph (clarify
+  answer); new chat → new id → fresh run.
+
+### 8.6 DB, sessions, migrations, checkpointer
+
+- **Async SQLAlchemy 2.0** (`asyncpg`), `async_sessionmaker`; a dependency yields one
+  `AsyncSession` per request.
+- **Alembic** migrates *app* tables (`users`, `user_profiles`, `saved_jobs`,
+  `served_jobs`).
+- **LangGraph `AsyncPostgresSaver`** on the same Postgres, manages its own checkpoint
+  tables; `await checkpointer.setup()` runs once in the FastAPI **lifespan**. Two
+  layers, one DB; we never hand-migrate the checkpoint tables.
+
+### 8.7 Config
+
+`pydantic-settings`, env-driven: `DATABASE_URL`, `JWT_SECRET`, `ANTHROPIC_API_KEY`,
+`JWT_EXPIRE_DAYS=7`, `MAX_RESULTS=6`. `.env` locally, Railway env vars in prod.
+
+### 8.8 Startup (lifespan)
+
+Init DB engine → `await checkpointer.setup()` → load `seed_companies.yaml` into
+memory → mount routers + SPA catch-all.
+
+## 9. Out of scope for v1 (explicitly deferred)
 
 - Async/background execution and `search_runs`
 - Scheduled "daily agent" cron runs (graph designed to allow it later)
@@ -240,9 +330,9 @@ class RankedJob(Job):
 - Refresh tokens, password reset, email verification
 - Horizontal scale concerns
 
-## 9. Next: subsystem deep-dives
+## 10. Next: subsystem deep-dives
 
 1. ~~**Agent core**~~ — DONE (section 7).
-2. **Backend** — route contracts, auth/JWT flow, SSE protocol, DB session +
-   Alembic, checkpointer wiring, config.
-3. **Frontend** — signup flow, chat UI + SSE consumption, saved-jobs view, API client.
+2. ~~**Backend**~~ — DONE (section 8).
+3. **Frontend** — signup flow, chat UI + SSE consumption (fetch/ReadableStream),
+   saved-jobs view, API client, routing.
