@@ -17,7 +17,7 @@ boards, filters and ranks against the resume, and returns matches the user can s
 |---|---|---|
 | Repo | Monorepo | pnpm workspace (JS) + `uv` (Python); plain folders, no Turborepo/Nx |
 | Backend | FastAPI + LangGraph, Python 3.12 | `uv` for dependency management |
-| Agent LLM | Claude `claude-sonnet-5` | Query understanding + resume-based ranking |
+| Agent LLM | Claude, default `claude-haiku-4-5` (env `AGENT_MODEL`) | Query understanding + resume ranking; cheap by default, upgradeable |
 | Frontend | React + Vite + TypeScript | Signup, chat, saved-jobs views |
 | Database | Postgres + SQLAlchemy 2.0 + Alembic | Migrations via Alembic |
 | Auth | JWT in httpOnly cookie; argon2id hash; 7-day expiry | Single-origin, no refresh token in v1 |
