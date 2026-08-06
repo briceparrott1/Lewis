@@ -8,3 +8,4 @@ dist/
 .DS_Store
 .superpowers/
 cookies.txt
+*.egg-info/
