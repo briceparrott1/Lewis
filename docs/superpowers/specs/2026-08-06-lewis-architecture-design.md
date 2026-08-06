@@ -321,7 +321,70 @@ discarded); saving a job = client **POSTs the `RankedJob` payload** it already h
 Init DB engine → `await checkpointer.setup()` → load `seed_companies.yaml` into
 memory → mount routers + SPA catch-all.
 
-## 9. Out of scope for v1 (explicitly deferred)
+## 9. Frontend — detailed design
+
+React + Vite + TypeScript, **Tailwind CSS**. Built to `dist`, served by FastAPI
+(single origin). Dev: Vite `:5173` with `/api` proxy → FastAPI `:8000`.
+
+### 9.1 Routing (React Router)
+
+| Route | Access | Purpose |
+|---|---|---|
+| `/signup`, `/login` | public | email + password forms |
+| `/onboarding` | authed, until resume exists | one-time resume upload |
+| `/` (chat) | authed + resume present | main chat/search view |
+| `/saved` | authed | saved jobs list |
+
+**Guard on app load:** call `GET /api/auth/me` → 401 → `/login`; authed but no resume
+(`GET /api/profile`) → `/onboarding`; else → chat. Wrappers: `<RequireAuth>`,
+`<RequireResume>`.
+
+### 9.2 Onboarding
+
+Resume gate: after signup, a one-time required PDF/DOCX upload
+(`POST /api/profile/resume`, multipart) → redirect to chat. **Role preferences are
+NOT a form** — they're captured conversationally in chat and persisted to the profile
+as the agent structures them (matches the NL-elicited priority model).
+
+### 9.3 State management
+
+- **TanStack React Query** for server state: `me`, `profile`, `jobs`.
+  - `useQuery(["jobs"])` etc. handle loading/error/caching.
+  - **Mutations** (save/unsave) call `invalidateQueries(["jobs"])` so the saved list
+    refreshes on both the chat and saved screens automatically — the one real
+    cross-screen data flow. Login/logout `invalidate(["me"])`.
+- **`AuthContext`** derived from the `me` query (token is an httpOnly cookie, so auth
+  state = "does `/me` succeed").
+- **Chat stream** is NOT server state — a live SSE feed held in a `useReducer` in the
+  chat page (messages + streaming status).
+
+### 9.4 Screens
+
+1. **Signup / Login** — form → POST → invalidate `me` → redirect through guard.
+2. **Onboarding** — PDF/DOCX dropzone → upload → redirect to chat.
+3. **Chat** — message list + input. `conversation_id` (uuid) minted on mount; "New
+   chat" resets it. Renders SSE events: `status` → ephemeral gray line; `clarify` →
+   agent bubble (user answers in the same box, same `conversation_id` → resumes
+   thread); `result` → `<JobCard>` with Save; `done` → "Found N roles".
+4. **Saved jobs** — list of `<JobCard>` from `GET /api/jobs`, each with Unsave
+   (`DELETE`).
+
+### 9.5 Chat SSE consumption
+
+`streamChat(message, conversationId, onEvent)`: `fetch("/api/chat", {method:"POST",
+body})` → `res.body.getReader()` → decode chunks, buffer, split on blank lines, parse
+each `event:`/`data:` frame → dispatch to reducer. `AbortController` cancels on
+unmount/navigation. (Native `EventSource` is unusable — it is GET-only.)
+
+### 9.6 Shared
+
+- **`<JobCard>`** — used in chat results and saved view: title, company, location,
+  score, one-line reason, apply link (`url`), Save/Unsave. Save POSTs the `RankedJob`
+  payload it already holds.
+- **`api.ts`** — thin fetch wrapper, base `/api`, `credentials: "include"`, JSON
+  helpers; React Query hooks wrap it.
+
+## 10. Out of scope for v1 (explicitly deferred)
 
 - Async/background execution and `search_runs`
 - Scheduled "daily agent" cron runs (graph designed to allow it later)
@@ -330,9 +393,12 @@ memory → mount routers + SPA catch-all.
 - Refresh tokens, password reset, email verification
 - Horizontal scale concerns
 
-## 10. Next: subsystem deep-dives
+## 11. Design status
+
+All three subsystem deep-dives complete:
 
 1. ~~**Agent core**~~ — DONE (section 7).
 2. ~~**Backend**~~ — DONE (section 8).
-3. **Frontend** — signup flow, chat UI + SSE consumption (fetch/ReadableStream),
-   saved-jobs view, API client, routing.
+3. ~~**Frontend**~~ — DONE (section 9).
+
+Next step: turn this design into an implementation plan (writing-plans).
