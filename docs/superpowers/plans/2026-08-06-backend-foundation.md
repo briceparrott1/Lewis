@@ -334,12 +334,10 @@ import os
 import httpx
 import pytest
 from httpx import ASGITransport
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
+from lewis_api.db import models  # noqa: F401  (registers all tables on Base)
 from lewis_api.db.base import Base, get_session
 from lewis_api.main import app
 
@@ -349,26 +347,23 @@ TEST_DB_URL = os.environ.get(
 )
 
 
-@pytest.fixture(scope="session")
-async def _engine():
-    engine = create_async_engine(TEST_DB_URL, future=True)
+@pytest.fixture
+async def db_session():
+    """Fresh schema per test. NullPool keeps every connection on the test's own
+    event loop, avoiding pytest-asyncio 'different event loop' errors with asyncpg.
+    Cheap for our handful of small tables."""
+    engine = create_async_engine(TEST_DB_URL, poolclass=NullPool)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    yield engine
-    await engine.dispose()
-
-
-@pytest.fixture
-async def db_session(_engine):
-    """Each test runs inside a transaction that is rolled back."""
-    connection = await _engine.connect()
-    trans = await connection.begin()
-    maker = async_sessionmaker(bind=connection, expire_on_commit=False)
-    session: AsyncSession = maker()
-    yield session
-    await session.close()
-    await trans.rollback()
-    await connection.close()
+    maker = async_sessionmaker(engine, expire_on_commit=False)
+    session = maker()
+    try:
+        yield session
+    finally:
+        await session.close()
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+        await engine.dispose()
 
 
 @pytest.fixture
@@ -382,6 +377,10 @@ async def client(db_session):
         yield c
     app.dependency_overrides.clear()
 ```
+
+(If pytest prints an "asyncio_default_fixture_loop_scope is unset" warning, add
+`asyncio_default_fixture_loop_scope = "function"` under `[tool.pytest.ini_options]`
+in `pyproject.toml` — it silences the warning; tests pass either way.)
 
 - [ ] **Step 5: Start Postgres and confirm health test still passes with DB wiring**
 
