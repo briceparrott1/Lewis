@@ -98,14 +98,123 @@ rank against resume → stream results into chat → user clicks Save → `saved
 - **user_profiles** — user_id, resume_text, raw_prefs_text, structured_prefs (jsonb)
 - **saved_jobs** — id, user_id, source (`greenhouse`|`ashby`), company, title,
   location, url, raw (jsonb), saved_at
+- **served_jobs** — user_id, job_key (`{source}:{board_token}:{external_id}`),
+  served_at, `UNIQUE(user_id, job_key)`, index on user_id. Ledger of jobs already
+  shown to a user, so future searches never repeat them (permanent, no re-surface).
+- **LangGraph checkpointer tables** — managed by `AsyncPostgresSaver`, separate from
+  app tables; hold transient graph state per conversation `thread_id`.
 
-## 7. Agent graph shape (high-level; deep-dive pending)
+`structured_prefs` (jsonb) shape:
 
-`parse_query` → `plan_sources` → `fetch_boards` (fan-out over seed list) →
-`normalize` → `filter` → `rank_with_resume` → `respond`.
+```python
+class StructuredPrefs(TypedDict, total=False):
+    role_keywords: list[str]
+    locations: list[str]
+    remote_ok: bool | None
+    seniority: Literal["intern","new_grad","mid","senior","staff"] | None
+    extra: str
+    required: list[str]     # hard-filter dimensions, e.g. ["role"]
+    priorities: list[str]   # ordered soft prefs, most important first
+```
 
-State carries: user prefs, resume, candidate jobs, ranked results.
-Tools: the two board fetchers + a scoring/ranking step.
+## 7. Agent core — detailed design
+
+### 7.1 Execution model
+
+- Synchronous per chat turn, streamed via SSE. The graph is a **pure callable**
+  wrapped by the HTTP layer.
+- **Clarify-then-search loop:** if a query lacks enough signal, the graph asks one
+  targeted clarifying question and pauses (LangGraph `interrupt()` + Postgres
+  checkpointer), resuming on the user's next message. At most **one** clarify per
+  conversation, then it proceeds best-effort — no infinite loop.
+
+### 7.2 Graph topology
+
+```
+ingest → parse_query → ⟨route_sufficiency⟩
+                          ├─ insufficient & not clarified → ask_clarify (interrupt, turn ends)
+                          └─ else → plan_sources → fetch_boards → normalize
+                               → exclude_served → prefilter → rank → respond → record_served
+```
+
+### 7.3 Nodes
+
+| Node | Responsibility |
+|---|---|
+| `ingest` | Load resume + prior merged prefs (checkpoint) + user's `served_keys` set. |
+| `parse_query` | Claude extracts/merges `StructuredPrefs` incl. `required` + `priorities`. |
+| `route_sufficiency` | Conditional edge. Sufficient = `role_keywords` present AND (`locations` non-empty OR `remote_ok is True`). Priority conflicts can also trigger clarify. |
+| `ask_clarify` | Emit one targeted question; `interrupt()`; set `clarified_once=True`. |
+| `plan_sources` | Select boards from seed list (v1: all). |
+| `fetch_boards` | Concurrent GH+Ashby fetch, semaphore ~15, per-board ~5s timeout, TTL cache ~10min, partial-failure tolerant. |
+| `normalize` | Map raw postings → common `Job` schema; dedupe. |
+| `exclude_served` | Drop jobs whose `job_key` ∈ user's served set. |
+| `prefilter` | Hard-filter on `required` only; soft-score the rest weighted by `priorities` rank; take top ~50. |
+| `rank` | Claude scores the ~50 candidates 0-100 + one-line reason vs resume/prefs, trading off by priority order. |
+| `respond` | Sort by score; stream top `MAX_RESULTS` (default 6, range 5-7). |
+| `record_served` | Insert the shown jobs' keys into `served_jobs` (`ON CONFLICT DO NOTHING`). |
+
+### 7.4 State schema
+
+```python
+class AgentState(TypedDict):
+    user_id: str
+    resume_text: str
+    prefs: StructuredPrefs          # merges across turns
+    clarified_once: bool
+    served_keys: set[str]
+    new_message: str
+    raw_postings: list[dict]
+    candidates: list[Job]           # post-prefilter
+    ranked: list[RankedJob]         # final, sorted
+```
+
+### 7.5 Common Job schema (normalization target; backend + frontend consume this)
+
+```python
+class Job(TypedDict):
+    source: Literal["greenhouse","ashby"]
+    company: str
+    board_token: str
+    external_id: str
+    title: str
+    location: str
+    department: str | None
+    url: str
+    posted_at: str | None
+    compensation: str | None        # Ashby sometimes provides
+    description: str                # truncated to ~2k chars for ranking
+
+class RankedJob(Job):
+    score: int                      # 0-100
+    reason: str                     # one line, resume- and priority-aware
+```
+
+### 7.6 Funnel knobs
+
+| Knob | Value |
+|---|---|
+| Candidate cap into ranker | ~50 |
+| Final shown to user (`MAX_RESULTS`) | 6 (configurable 5-7) |
+| JD truncation for ranking | ~2k chars |
+| Per-board fetch timeout | ~5s |
+| Fetch concurrency | ~15 |
+| Board cache TTL | ~10 min |
+
+### 7.7 Streaming contract (agent → backend → SSE → frontend)
+
+| event | payload | when |
+|---|---|---|
+| `status` | `{text}` | progress ticks ("Scanning 210 companies…") |
+| `clarify` | `{question}` | clarify gate fires |
+| `result` | `RankedJob` | each of the top `MAX_RESULTS` as ranking completes |
+| `done` | `{count}` | end of turn |
+
+### 7.8 Sources
+
+- Greenhouse: `https://boards-api.greenhouse.io/v1/boards/{token}/jobs?content=true`
+- Ashby: `https://api.ashbyhq.com/posting-api/job-board/{org}?includeCompensation=true`
+- Seed list of `{company, source, board_token}` in `sources/seed_companies.yaml`.
 
 ## 8. Out of scope for v1 (explicitly deferred)
 
@@ -118,8 +227,7 @@ Tools: the two board fetchers + a scoring/ranking step.
 
 ## 9. Next: subsystem deep-dives
 
-1. **Agent core** — execution graph, node contracts, tool signatures, state schema,
-   ranking prompt, error/timeout handling per board.
-2. **Backend** — route contracts, auth flow, SSE protocol, DB session/migrations,
-   config.
+1. ~~**Agent core**~~ — DONE (section 7).
+2. **Backend** — route contracts, auth/JWT flow, SSE protocol, DB session +
+   Alembic, checkpointer wiring, config.
 3. **Frontend** — signup flow, chat UI + SSE consumption, saved-jobs view, API client.
