@@ -1,7 +1,8 @@
 # Lewis — Architecture & Stack Design
 
 **Date:** 2026-08-06
-**Status:** Architecture locked. Subsystem deep-dives (frontend, backend, agent core) pending.
+**Status:** Design complete — stack, architecture, and all three subsystem deep-dives
+(agent core, backend, frontend) locked. Ready for implementation planning.
 
 ## 1. Product summary
 
@@ -76,16 +77,17 @@ lewis/
 ## 5. Runtime architecture & request flow
 
 ```
-React/Vite  ──JWT, REST + SSE──►  FastAPI (/auth /jobs /chat)
-  signup                                │
-  chat                                  ▼
-  saved-jobs                    LangGraph run()  (pure callable: prefs → ranked)
-                                        │ fan-out
-                                        ▼
-                               Greenhouse / Ashby board fetchers (public, no auth)
-                                        │
-                              SQLAlchemy ▼
-                                    Postgres  (users, profiles, saved_jobs)
+React/Vite  ──cookie JWT, REST + SSE──►  FastAPI (serves SPA + /api/*)
+  signup                                    │
+  chat                                      ▼
+  saved-jobs                        LangGraph run()  (pure callable: prefs → ranked)
+                                            │ fan-out
+                                            ▼
+                                   Greenhouse / Ashby board fetchers (public, no auth)
+                                            │
+                                  SQLAlchemy ▼
+                            Postgres  (users, profiles, saved_jobs, served_jobs
+                                       + LangGraph checkpoint tables)
 ```
 
 **Chat search turn:** user message → `/chat` (SSE) → `parse_query` → scan seed
