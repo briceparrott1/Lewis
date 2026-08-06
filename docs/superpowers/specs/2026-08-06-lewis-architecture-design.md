@@ -98,9 +98,17 @@ rank against resume → stream results into chat → user clicks Save → `saved
 - **user_profiles** — user_id, resume_text, raw_prefs_text, structured_prefs (jsonb)
 - **saved_jobs** — id, user_id, source (`greenhouse`|`ashby`), company, title,
   location, url, raw (jsonb), saved_at
-- **served_jobs** — user_id, job_key (`{source}:{board_token}:{external_id}`),
-  served_at, `UNIQUE(user_id, job_key)`, index on user_id. Ledger of jobs already
-  shown to a user, so future searches never repeat them (permanent, no re-surface).
+- **served_jobs** — user_id, job_key (**normalized posting URL**), source_id
+  (`{source}:{board_token}:{external_id}`, nullable backstop), served_at,
+  `UNIQUE(user_id, job_key)`, index on user_id. Ledger of jobs already shown to a
+  user, so future searches never repeat them (permanent, no re-surface).
+  - `job_key` derives from the URL the APIs already return — Greenhouse
+    `absolute_url`, Ashby `jobUrl` (not `applyUrl`). No browser needed.
+  - **URL normalization** (before use as key): force `https`, lowercase scheme+host,
+    strip query + `#fragment` (id lives in the path for both sources; also drops
+    `utm_*`/`gh_src`), strip trailing slash.
+  - `source_id` is kept as a backstop against Greenhouse host drift
+    (`boards.` vs `job-boards.greenhouse.io`).
 - **LangGraph checkpointer tables** — managed by `AsyncPostgresSaver`, separate from
   app tables; hold transient graph state per conversation `thread_id`.
 
@@ -148,7 +156,7 @@ ingest → parse_query → ⟨route_sufficiency⟩
 | `plan_sources` | Select boards from seed list (v1: all). |
 | `fetch_boards` | Concurrent GH+Ashby fetch, semaphore ~15, per-board ~5s timeout, TTL cache ~10min, partial-failure tolerant. |
 | `normalize` | Map raw postings → common `Job` schema; dedupe. |
-| `exclude_served` | Drop jobs whose `job_key` ∈ user's served set. |
+| `exclude_served` | Drop jobs whose normalized-URL `job_key` ∈ user's served set. |
 | `prefilter` | Hard-filter on `required` only; soft-score the rest weighted by `priorities` rank; take top ~50. |
 | `rank` | Claude scores the ~50 candidates 0-100 + one-line reason vs resume/prefs, trading off by priority order. |
 | `respond` | Sort by score; stream top `MAX_RESULTS` (default 6, range 5-7). |
@@ -213,8 +221,15 @@ class RankedJob(Job):
 ### 7.8 Sources
 
 - Greenhouse: `https://boards-api.greenhouse.io/v1/boards/{token}/jobs?content=true`
+  - Field map: `absolute_url`→url, `id`→external_id, `location.name`→location,
+    `title`, `updated_at`→posted_at, `content`→description (HTML, strip to text).
 - Ashby: `https://api.ashbyhq.com/posting-api/job-board/{org}?includeCompensation=true`
+  - Field map: `jobUrl`→url, `id`→external_id, `location`, `title`,
+    `department`, `publishedAt`→posted_at, `descriptionPlain`→description
+    (already plain text), `compensation`→compensation.
 - Seed list of `{company, source, board_token}` in `sources/seed_companies.yaml`.
+- Verified live (2026-08-06): both APIs return the posting URL and full
+  description in the JSON with no auth — confirming URL-based `job_key` is in scope.
 
 ## 8. Out of scope for v1 (explicitly deferred)
 
