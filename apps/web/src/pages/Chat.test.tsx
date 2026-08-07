@@ -116,6 +116,21 @@ describe("Chat", () => {
     expect(await screen.findByText("Found 0 roles.")).toBeInTheDocument();
   });
 
+  it("does not show a synthesized 'Found N roles' fallback after a clarify turn", async () => {
+    vi.mocked(streamChat).mockImplementation(
+      async (_body: unknown, onEvent: (e: ChatEvent) => void) => {
+        onEvent({ type: "clarify", question: "What city are you looking in?" });
+        onEvent({ type: "done", count: 0 });
+      },
+    );
+    renderChat();
+    await sendMessage("anything");
+    expect(
+      await screen.findByText("What city are you looking in?"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/^Found \d+ role/)).not.toBeInTheDocument();
+  });
+
   it("shows the backend's no-results narrative when provided", async () => {
     vi.mocked(streamChat).mockImplementation(
       async (_body: unknown, onEvent: (e: ChatEvent) => void) => {

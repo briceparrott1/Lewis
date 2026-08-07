@@ -12,6 +12,7 @@ class FakeLLM:
         self.prefs_payload = prefs_payload
         self.rank_payload = rank_payload
         self.narrative_text = narrative_text
+        self.complete_calls = []
 
     async def structured(self, system, user, tool_name, schema):
         if tool_name == "record_preferences":
@@ -19,6 +20,7 @@ class FakeLLM:
         return self.rank_payload
 
     async def complete(self, system, user):
+        self.complete_calls.append(user)
         return self.narrative_text
 
 
@@ -50,12 +52,12 @@ async def _fake_fetch(entries, client):
 def _graph(prefs_payload, rank_payload):
     llm = FakeLLM(prefs_payload, rank_payload)
     seed = [SeedEntry("Ramp", "ashby", "ramp")]
-    return build_graph(llm, _fake_fetch, seed, MemorySaver())
+    return build_graph(llm, _fake_fetch, seed, MemorySaver()), llm
 
 
 @pytest.mark.asyncio
 async def test_clear_query_streams_results_and_reports_served():
-    graph = _graph(
+    graph, llm = _graph(
         {
             "role_keywords": ["forward deployed"],
             "locations": ["SF"],
@@ -83,11 +85,14 @@ async def test_clear_query_streams_results_and_reports_served():
     results = [e for e in events if e["type"] == "result"]
     assert results[0]["job"]["title"] == "Forward Deployed Engineer"  # barista filtered
     assert events[-1]["served_keys"] == ["https://jobs.ashbyhq.com/ramp/1"]
+    # Proves the run_agent -> AgentState -> respond -> narrate_results hop
+    # actually threads user_name through, not just the two endpoints.
+    assert any("Brice" in call for call in llm.complete_calls)
 
 
 @pytest.mark.asyncio
 async def test_vague_query_asks_one_clarify_then_searches():
-    graph = _graph(
+    graph, _llm = _graph(
         {"role_keywords": ["engineer"]},  # no location/remote → insufficient
         {"rankings": [{"external_id": "1", "score": 80, "reason": "ok"}]},
     )
@@ -124,7 +129,7 @@ async def test_vague_query_asks_one_clarify_then_searches():
 
 @pytest.mark.asyncio
 async def test_served_jobs_excluded():
-    graph = _graph(
+    graph, _llm = _graph(
         {
             "role_keywords": ["forward deployed"],
             "locations": ["SF"],

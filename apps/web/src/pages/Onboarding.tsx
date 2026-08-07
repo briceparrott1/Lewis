@@ -20,14 +20,23 @@ export function Onboarding() {
     setError("");
     try {
       await api.uploadFile("/profile/resume", file);
-      if (name.trim()) await api.put("/profile/name", { name: name.trim() });
-      await qc.invalidateQueries({ queryKey: ["profile"] });
-      nav("/");
     } catch {
       setError("Upload failed — please use a PDF or DOCX.");
-    } finally {
       setBusy(false);
+      return;
     }
+    if (name.trim()) {
+      try {
+        await api.put("/profile/name", { name: name.trim() });
+      } catch {
+        // Name personalization is a nice-to-have — don't block onboarding
+        // completion or show the resume-specific error for a name-PUT failure.
+        console.error("Failed to save name during onboarding");
+      }
+    }
+    await qc.invalidateQueries({ queryKey: ["profile"] });
+    nav("/");
+    setBusy(false);
   }
 
   return (

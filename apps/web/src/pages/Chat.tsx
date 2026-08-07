@@ -25,6 +25,7 @@ export function Chat() {
   const [busy, setBusy] = useState(false);
   const [statusText, setStatusText] = useState<string | null>(null);
   const gotNarrative = useRef(false);
+  const gotClarify = useRef(false);
   const abort = useRef<AbortController | null>(null);
   const save = useSaveJob();
   const tickerText = useStatusTicker(busy, statusText);
@@ -40,16 +41,19 @@ export function Chat() {
     setBusy(true);
     setStatusText("Getting started…"); // neutral placeholder — never a filler phrase
     gotNarrative.current = false;
+    gotClarify.current = false;
     abort.current = new AbortController();
     try {
       await streamChat({ message, conversation_id: convo }, (ev: ChatEvent) => {
         if (ev.type === "status") setStatusText(ev.text);
-        else if (ev.type === "clarify") dispatch({ kind: "clarify", text: ev.question });
-        else if (ev.type === "narrative") {
+        else if (ev.type === "clarify") {
+          gotClarify.current = true;
+          dispatch({ kind: "clarify", text: ev.question });
+        } else if (ev.type === "narrative") {
           gotNarrative.current = true;
           dispatch({ kind: "narrative", text: ev.text });
         } else if (ev.type === "result") dispatch({ kind: "result", job: ev.job });
-        else if (ev.type === "done" && !gotNarrative.current) {
+        else if (ev.type === "done" && !gotNarrative.current && !gotClarify.current) {
           dispatch({
             kind: "narrative",
             text: `Found ${ev.count} role${ev.count === 1 ? "" : "s"}.`,
