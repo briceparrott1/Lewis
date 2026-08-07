@@ -42,7 +42,11 @@ class AnthropicLLM:
                 system=system,
                 messages=[{"role": "user", "content": user}],
                 tools=[
-                    {"name": tool_name, "description": tool_name, "input_schema": schema}
+                    {
+                        "name": tool_name,
+                        "description": tool_name,
+                        "input_schema": schema,
+                    }
                 ],
                 tool_choice={"type": "tool", "name": tool_name},
             )
