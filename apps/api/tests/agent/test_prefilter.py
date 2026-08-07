@@ -16,7 +16,7 @@ def test_required_role_is_hard_filter():
 def test_soft_location_does_not_drop_but_scores():
     prefs = {
         "role_keywords": ["fde"],
-        "locations": ["SF"],
+        "locations": ["San Francisco"],
         "priorities": ["role", "location"],
     }
     sf = _job("FDE", "San Francisco")

@@ -3,9 +3,7 @@ from lewis_api.agent.state import Job, StructuredPrefs
 
 def _kw_hit(text: str, keywords: list[str]) -> bool:
     low = text.lower()
-    words = low.split()
-    initials = "".join(w[0] for w in words if w)
-    return any((k.lower() == initials) or (k.lower() in low) for k in keywords)
+    return any(k.lower() in low for k in keywords)
 
 
 def _weight(dimension: str, priorities: list[str]) -> float:

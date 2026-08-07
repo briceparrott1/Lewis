@@ -543,7 +543,7 @@ def test_required_role_is_hard_filter():
 
 
 def test_soft_location_does_not_drop_but_scores():
-    prefs = {"role_keywords": ["fde"], "locations": ["SF"], "priorities": ["role", "location"]}
+    prefs = {"role_keywords": ["fde"], "locations": ["San Francisco"], "priorities": ["role", "location"]}
     sf = _job("FDE", "San Francisco")
     ny = _job("FDE", "New York")
     out = prefilter([ny, sf], prefs)
@@ -743,7 +743,8 @@ _SYSTEM = (
     "remote_ok: true if remote acceptable. seniority: one of intern/new_grad/mid/"
     "senior/staff or null. required: dimensions that are dealbreakers "
     "(subset of ['role','location']). priorities: dimensions ordered most-important "
-    "first. Only include fields the user actually expressed."
+    "first. For locations, use full names as they appear in job postings "
+    "(e.g. 'San Francisco', not 'SF'). Only include fields the user actually expressed."
 )
 
 
