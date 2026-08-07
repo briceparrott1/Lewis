@@ -10,6 +10,8 @@ class LLM(Protocol):
         self, system: str, user: str, tool_name: str, schema: dict
     ) -> dict: ...
 
+    async def complete(self, system: str, user: str) -> str: ...
+
 
 class AnthropicLLM:
     def __init__(self, client: AsyncAnthropic | None = None, model: str | None = None):
@@ -37,3 +39,15 @@ class AnthropicLLM:
             if block.type == "tool_use":
                 return dict(block.input)
         return {}
+
+    async def complete(self, system: str, user: str) -> str:
+        resp = await self._client.messages.create(
+            model=self._model,
+            max_tokens=1024,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        )
+        for block in resp.content:
+            if block.type == "text":
+                return block.text
+        return ""
