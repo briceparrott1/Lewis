@@ -130,6 +130,13 @@ COOKIE_SECURE=false
 AGENT_MODEL=claude-haiku-4-5-20251001
 ```
 
+Create the separate test database once (used by the pytest suite, kept distinct
+from the dev/migration DB so `create_all`/`drop_all` never corrupts migrations):
+```bash
+docker compose up -d db
+docker compose exec -T db psql -U lewis -d postgres -c "CREATE DATABASE lewis_test;"
+```
+
 - [ ] **Step 2: Create `apps/api/pyproject.toml`**
 
 ```toml
@@ -343,7 +350,9 @@ from lewis_api.main import app
 
 TEST_DB_URL = os.environ.get(
     "TEST_DATABASE_URL",
-    "postgresql+asyncpg://lewis:lewis_local_dev@localhost:5432/lewis",
+    # Separate DB from the dev/migration DB so create_all/drop_all can't
+    # corrupt migration state in `lewis`.
+    "postgresql+asyncpg://lewis:lewis_local_dev@localhost:5432/lewis_test",
 )
 
 

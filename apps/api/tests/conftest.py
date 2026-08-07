@@ -12,7 +12,9 @@ from lewis_api.main import app
 
 TEST_DB_URL = os.environ.get(
     "TEST_DATABASE_URL",
-    "postgresql+asyncpg://lewis:lewis_local_dev@localhost:5432/lewis",
+    # Separate DB from the dev/migration DB so the suite's create_all/drop_all
+    # never corrupts migration state in `lewis`.
+    "postgresql+asyncpg://lewis:lewis_local_dev@localhost:5432/lewis_test",
 )
 
 
