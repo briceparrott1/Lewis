@@ -3,6 +3,7 @@ from collections.abc import AsyncIterator
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 
+from lewis_api.agent.narrate import narrate_results
 from lewis_api.agent.normalize import job_key
 from lewis_api.agent.prefilter import prefilter
 from lewis_api.agent.prefs import is_sufficient, parse_prefs
@@ -24,6 +25,9 @@ def build_graph(llm, fetch_boards, seed, checkpointer):
         }
 
     async def parse(state: AgentState) -> dict:
+        get_stream_writer()(
+            {"type": "status", "text": "Reading your resume and preferences…"}
+        )
         prefs = await parse_prefs(
             state["new_message"],
             state.get("prefs", {}),
@@ -43,12 +47,15 @@ def build_graph(llm, fetch_boards, seed, checkpointer):
 
     async def search(state: AgentState) -> dict:
         writer = get_stream_writer()
-        writer({"type": "status", "text": f"Scanning {len(seed)} companies…"})
+        writer(
+            {"type": "status", "text": f"Scanning {len(seed)} companies for openings…"}
+        )
         jobs = await fetch_boards(seed, None)
         served = set(state.get("served_keys", []))
         fresh = [j for j in jobs if job_key(j) not in served]
-        writer({"type": "status", "text": f"Ranking {len(fresh)} matches…"})
+        writer({"type": "status", "text": "Filtering to your criteria…"})
         candidates = prefilter(fresh, state["prefs"])
+        writer({"type": "status", "text": "Ranking matches against your profile…"})
         ranked = await rank_jobs(
             candidates, state["prefs"], state.get("resume_text", ""), llm
         )
@@ -57,6 +64,15 @@ def build_graph(llm, fetch_boards, seed, checkpointer):
     async def respond(state: AgentState) -> dict:
         writer = get_stream_writer()
         top = state.get("ranked", [])[: get_settings().max_results]
+        writer({"type": "status", "text": "Writing up what I found…"})
+        narrative = await narrate_results(
+            top,
+            state["prefs"],
+            state.get("resume_text", ""),
+            state.get("user_name"),
+            llm,
+        )
+        writer({"type": "narrative", "text": narrative})
         for job in top:
             writer({"type": "result", "job": job})
         return {"ranked": top}
@@ -86,6 +102,7 @@ async def run_agent(
     served_keys: list[str],
     message: str,
     thread_id: str,
+    user_name: str | None = None,
 ) -> AsyncIterator[dict]:
     config = {"configurable": {"thread_id": thread_id}}
     inputs = {
@@ -93,6 +110,7 @@ async def run_agent(
         "resume_text": resume_text,
         "served_keys": served_keys,
         "new_message": message,
+        "user_name": user_name,
     }
     shown: list[dict] = []
     async for event in graph.astream(inputs, config, stream_mode="custom"):

@@ -32,6 +32,7 @@ class RankedJob(Job, total=False):
 
 class AgentState(TypedDict, total=False):
     user_id: str
+    user_name: str | None
     resume_text: str
     prefs: StructuredPrefs
     clarified_once: bool

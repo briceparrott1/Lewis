@@ -6,14 +6,20 @@ from lewis_api.agent.sources.seed import SeedEntry
 
 
 class FakeLLM:
-    def __init__(self, prefs_payload, rank_payload):
+    def __init__(
+        self, prefs_payload, rank_payload, narrative_text="Here's what I found."
+    ):
         self.prefs_payload = prefs_payload
         self.rank_payload = rank_payload
+        self.narrative_text = narrative_text
 
     async def structured(self, system, user, tool_name, schema):
         if tool_name == "record_preferences":
             return self.prefs_payload
         return self.rank_payload
+
+    async def complete(self, system, user):
+        return self.narrative_text
 
 
 async def _fake_fetch(entries, client):
@@ -66,10 +72,14 @@ async def test_clear_query_streams_results_and_reports_served():
             served_keys=[],
             message="FDE in SF",
             thread_id="u1:c1",
+            user_name="Brice",
         )
     ]
     types = [e["type"] for e in events]
-    assert "result" in types and types[-1] == "done"
+    # parse + scan + filter + rank + writing-up = 5 real status phases
+    assert types.count("status") == 5
+    assert "narrative" in types and "result" in types and types[-1] == "done"
+    assert types.index("narrative") < types.index("result")
     results = [e for e in events if e["type"] == "result"]
     assert results[0]["job"]["title"] == "Forward Deployed Engineer"  # barista filtered
     assert events[-1]["served_keys"] == ["https://jobs.ashbyhq.com/ramp/1"]
@@ -92,7 +102,9 @@ async def test_vague_query_asks_one_clarify_then_searches():
             thread_id="u1:c2",
         )
     ]
-    assert first[0]["type"] == "clarify" and first[-1]["type"] == "done"
+    types_first = [e["type"] for e in first]
+    assert first[0]["type"] == "status"  # "Reading your resume..." comes first now
+    assert "clarify" in types_first and types_first[-1] == "done"
 
     # second turn, same thread — now proceeds (clarified_once persists)
     second = [
@@ -107,6 +119,7 @@ async def test_vague_query_asks_one_clarify_then_searches():
         )
     ]
     assert any(e["type"] == "result" for e in second)
+    assert any(e["type"] == "narrative" for e in second)
 
 
 @pytest.mark.asyncio
@@ -131,3 +144,6 @@ async def test_served_jobs_excluded():
         )
     ]
     assert not any(e["type"] == "result" for e in events)  # only match excluded
+    narrative_events = [e for e in events if e["type"] == "narrative"]
+    assert len(narrative_events) == 1
+    assert "didn't find any roles" in narrative_events[0]["text"]
