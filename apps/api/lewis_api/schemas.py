@@ -18,3 +18,15 @@ class UserOut(BaseModel):
     email: str
 
     model_config = {"from_attributes": True}
+
+
+class ProfileOut(BaseModel):
+    resume_text: str | None
+    raw_prefs_text: str | None
+    structured_prefs: dict
+
+    model_config = {"from_attributes": True}
+
+
+class PrefsIn(BaseModel):
+    raw_prefs_text: str
