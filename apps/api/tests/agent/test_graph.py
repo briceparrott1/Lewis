@@ -131,3 +131,143 @@ async def test_served_jobs_excluded():
         )
     ]
     assert not any(e["type"] == "result" for e in events)  # only match excluded
+
+
+@pytest.mark.asyncio
+async def test_respond_applies_company_diversity_cap():
+    async def fetch_many(entries, client):
+        jobs = [
+            {
+                "source": "greenhouse",
+                "company": "Acme",
+                "board_token": "acme",
+                "external_id": f"acme-{i}",
+                "title": "Software Engineer",
+                "location": "SF",
+                "url": f"https://boards.greenhouse.io/acme/{i}",
+                "description": "d",
+            }
+            for i in range(4)
+        ]
+        jobs.append(
+            {
+                "source": "ashby",
+                "company": "Beta",
+                "board_token": "beta",
+                "external_id": "beta-1",
+                "title": "Software Engineer",
+                "location": "SF",
+                "url": "https://jobs.ashbyhq.com/beta/1",
+                "description": "d",
+            }
+        )
+        return jobs
+
+    rank_payload = {
+        "rankings": [
+            {
+                "external_id": f"acme-{i}",
+                "score": 90 - i,
+                "reason": "x",
+                "seniority": "unknown",
+            }
+            for i in range(4)
+        ]
+        + [
+            {
+                "external_id": "beta-1",
+                "score": 50,
+                "reason": "x",
+                "seniority": "unknown",
+            }
+        ]
+    }
+    llm = FakeLLM(
+        {"role_keywords": ["engineer"], "locations": ["SF"], "required": ["role"]},
+        rank_payload,
+    )
+    seed = [SeedEntry("Acme", "greenhouse", "acme")]
+    graph = build_graph(llm, fetch_many, seed, MemorySaver())
+    events = [
+        e
+        async for e in run_agent(
+            graph,
+            user_id="u1",
+            resume_text="r",
+            served_keys=[],
+            message="SWE in SF",
+            thread_id="u1:c4",
+        )
+    ]
+    results = [e["job"] for e in events if e["type"] == "result"]
+    companies = [j["company"] for j in results]
+    assert companies.count("Acme") <= 2
+    assert "Beta" in companies
+
+
+@pytest.mark.asyncio
+async def test_respond_excludes_seniority_mismatch():
+    async def fetch_two(entries, client):
+        return [
+            {
+                "source": "greenhouse",
+                "company": "Acme",
+                "board_token": "acme",
+                "external_id": "senior-role",
+                "title": "Senior Software Engineer",
+                "location": "SF",
+                "url": "https://boards.greenhouse.io/acme/1",
+                "description": "d",
+            },
+            {
+                "source": "greenhouse",
+                "company": "Acme",
+                "board_token": "acme",
+                "external_id": "mid-role",
+                "title": "Mid-level Software Engineer",
+                "location": "SF",
+                "url": "https://boards.greenhouse.io/acme/2",
+                "description": "d",
+            },
+        ]
+
+    rank_payload = {
+        "rankings": [
+            {
+                "external_id": "senior-role",
+                "score": 90,
+                "reason": "x",
+                "seniority": "senior",
+            },
+            {
+                "external_id": "mid-role",
+                "score": 80,
+                "reason": "x",
+                "seniority": "mid",  # one tier below "senior" -> excluded
+            },
+        ]
+    }
+    llm = FakeLLM(
+        {
+            "role_keywords": ["engineer"],
+            "locations": ["SF"],
+            "required": ["role"],
+            "seniority": "senior",
+        },
+        rank_payload,
+    )
+    seed = [SeedEntry("Acme", "greenhouse", "acme")]
+    graph = build_graph(llm, fetch_two, seed, MemorySaver())
+    events = [
+        e
+        async for e in run_agent(
+            graph,
+            user_id="u1",
+            resume_text="r",
+            served_keys=[],
+            message="senior SWE in SF",
+            thread_id="u1:c5",
+        )
+    ]
+    results = [e["job"] for e in events if e["type"] == "result"]
+    assert [j["external_id"] for j in results] == ["senior-role"]

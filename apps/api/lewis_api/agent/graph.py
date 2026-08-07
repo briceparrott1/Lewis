@@ -7,6 +7,8 @@ from lewis_api.agent.normalize import job_key
 from lewis_api.agent.prefilter import prefilter
 from lewis_api.agent.prefs import is_sufficient, parse_prefs
 from lewis_api.agent.rank import rank_jobs
+from lewis_api.agent.select_results import select_results
+from lewis_api.agent.seniority import filter_by_seniority
 from lewis_api.agent.state import AgentState
 from lewis_api.config import get_settings
 
@@ -56,7 +58,8 @@ def build_graph(llm, fetch_boards, seed, checkpointer):
 
     async def respond(state: AgentState) -> dict:
         writer = get_stream_writer()
-        top = state.get("ranked", [])[: get_settings().max_results]
+        eligible = filter_by_seniority(state.get("ranked", []), state["prefs"])
+        top = select_results(eligible, state["prefs"], get_settings().max_results)
         for job in top:
             writer({"type": "result", "job": job})
         return {"ranked": top}

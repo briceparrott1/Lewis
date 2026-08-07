@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     )
     jwt_secret: str = "change-me-in-prod"
     jwt_expire_days: int = 7
-    max_results: int = 6
+    max_results: int = 7
     cookie_secure: bool = False
     anthropic_api_key: str = ""
     agent_model: str = "claude-haiku-4-5-20251001"
