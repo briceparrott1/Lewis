@@ -49,3 +49,12 @@ async def test_put_prefs(client):
     assert resp.status_code == 200
     prof = await client.get("/api/profile")
     assert prof.json()["raw_prefs_text"] == "FDE in SF"
+
+
+async def test_put_name(client):
+    await _signup(client, "name@e.com")
+    resp = await client.put("/api/profile/name", json={"name": "Brice"})
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "Brice"
+    prof = await client.get("/api/profile")
+    assert prof.json()["name"] == "Brice"

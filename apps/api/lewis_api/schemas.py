@@ -22,11 +22,16 @@ class UserOut(BaseModel):
 
 
 class ProfileOut(BaseModel):
+    name: str | None
     resume_text: str | None
     raw_prefs_text: str | None
     structured_prefs: dict
 
     model_config = {"from_attributes": True}
+
+
+class NameIn(BaseModel):
+    name: str
 
 
 class PrefsIn(BaseModel):

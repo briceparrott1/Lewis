@@ -5,7 +5,7 @@ from lewis_api.auth.deps import get_current_user
 from lewis_api.db.base import get_session
 from lewis_api.db.models import User, UserProfile
 from lewis_api.profile.resume import extract_resume_text
-from lewis_api.schemas import PrefsIn, ProfileOut
+from lewis_api.schemas import NameIn, PrefsIn, ProfileOut
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
@@ -52,5 +52,17 @@ async def put_prefs(
 ) -> UserProfile:
     profile = await _get_or_create(session, user.id)
     profile.raw_prefs_text = body.raw_prefs_text
+    await session.commit()
+    return profile
+
+
+@router.put("/name", response_model=ProfileOut)
+async def put_name(
+    body: NameIn,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> UserProfile:
+    profile = await _get_or_create(session, user.id)
+    profile.name = body.name
     await session.commit()
     return profile
