@@ -6,6 +6,8 @@ from argon2.exceptions import VerifyMismatchError
 
 from lewis_api.config import get_settings
 
+COOKIE_NAME = "access_token"
+
 _ph = PasswordHasher()
 _ALGO = "HS256"
 
