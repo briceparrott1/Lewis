@@ -1,24 +1,20 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { streamChat } from "../lib/sse";
-import { JobCard } from "../components/JobCard";
+import { CompactJobRow } from "../components/CompactJobRow";
+import { Spinner } from "../components/Spinner";
+import { useStatusTicker } from "../lib/useStatusTicker";
 import { useSaveJob } from "../queries";
 import type { ChatEvent, RankedJob } from "../types";
 
 type Item =
   | { kind: "user"; text: string }
-  | { kind: "status"; text: string }
   | { kind: "clarify"; text: string }
-  | { kind: "result"; job: RankedJob }
-  | { kind: "done"; count: number };
+  | { kind: "narrative"; text: string }
+  | { kind: "result"; job: RankedJob };
 
 function reducer(items: Item[], ev: Item | { kind: "reset" }): Item[] {
   if (ev.kind === "reset") return [];
-  // collapse consecutive status lines to the latest
-  if (ev.kind === "status") {
-    const last = items[items.length - 1];
-    if (last?.kind === "status") return [...items.slice(0, -1), ev];
-  }
   return [...items, ev];
 }
 
@@ -27,8 +23,11 @@ export function Chat() {
   const [input, setInput] = useState("");
   const [convo, setConvo] = useState(() => crypto.randomUUID());
   const [busy, setBusy] = useState(false);
+  const [statusText, setStatusText] = useState<string | null>(null);
+  const gotNarrative = useRef(false);
   const abort = useRef<AbortController | null>(null);
   const save = useSaveJob();
+  const tickerText = useStatusTicker(busy, statusText);
 
   useEffect(() => () => abort.current?.abort(), []);
 
@@ -39,18 +38,29 @@ export function Chat() {
     setInput("");
     dispatch({ kind: "user", text: message });
     setBusy(true);
+    setStatusText("Getting started…"); // neutral placeholder — never a filler phrase
+    gotNarrative.current = false;
     abort.current = new AbortController();
     try {
       await streamChat({ message, conversation_id: convo }, (ev: ChatEvent) => {
-        if (ev.type === "status") dispatch({ kind: "status", text: ev.text });
+        if (ev.type === "status") setStatusText(ev.text);
         else if (ev.type === "clarify") dispatch({ kind: "clarify", text: ev.question });
-        else if (ev.type === "result") dispatch({ kind: "result", job: ev.job });
-        else if (ev.type === "done") dispatch({ kind: "done", count: ev.count });
+        else if (ev.type === "narrative") {
+          gotNarrative.current = true;
+          dispatch({ kind: "narrative", text: ev.text });
+        } else if (ev.type === "result") dispatch({ kind: "result", job: ev.job });
+        else if (ev.type === "done" && !gotNarrative.current) {
+          dispatch({
+            kind: "narrative",
+            text: `Found ${ev.count} role${ev.count === 1 ? "" : "s"}.`,
+          });
+        }
       }, abort.current.signal);
     } catch {
-      dispatch({ kind: "status", text: "Something went wrong. Try again." });
+      dispatch({ kind: "narrative", text: "Something went wrong. Try again." });
     } finally {
       setBusy(false);
+      setStatusText(null);
     }
   }
 
@@ -72,17 +82,21 @@ export function Chat() {
         {items.map((it, i) => {
           if (it.kind === "user")
             return <div key={i} className="self-end rounded bg-black px-3 py-2 text-white">{it.text}</div>;
-          if (it.kind === "status")
-            return <div key={i} className="text-sm text-gray-500">{it.text}</div>;
           if (it.kind === "clarify")
             return <div key={i} className="rounded bg-gray-100 px-3 py-2">{it.text}</div>;
-          if (it.kind === "done")
-            return <div key={i} className="text-sm text-gray-500">Found {it.count} role{it.count === 1 ? "" : "s"}.</div>;
+          if (it.kind === "narrative")
+            return <p key={i} className="rounded bg-gray-50 px-3 py-3 leading-relaxed">{it.text}</p>;
           return (
-            <JobCard key={i} job={it.job} action="save" busy={save.isPending}
-              onAction={() => save.mutate(it.job)} />
+            <CompactJobRow key={i} job={it.job} busy={save.isPending}
+              onSave={() => save.mutate(it.job)} />
           );
         })}
+        {busy && !gotNarrative.current && (
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Spinner />
+            <span>{tickerText}</span>
+          </div>
+        )}
       </div>
       <form onSubmit={send} className="sticky bottom-4 mt-4 flex gap-2">
         <input className="flex-1 rounded border p-2" placeholder="e.g. new grad FDE roles in SF"
