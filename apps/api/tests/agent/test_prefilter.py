@@ -28,7 +28,10 @@ def test_soft_location_does_not_drop_but_scores():
 
 def test_role_keywords_require_title_hit_even_if_remote():
     prefs = {"role_keywords": ["forward deployed"], "remote_ok": True}
-    jobs = [_job("Backend Engineer", "Remote"), _job("Forward Deployed Engineer", "NYC")]
+    jobs = [
+        _job("Backend Engineer", "Remote"),
+        _job("Forward Deployed Engineer", "NYC"),
+    ]
     out = prefilter(jobs, prefs)
     assert len(out) == 1  # remote Backend Engineer dropped (no role hit)
     assert "Forward" in out[0]["title"]

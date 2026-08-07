@@ -41,3 +41,17 @@ app.include_router(chat_router)
 @app.get("/api/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+from pathlib import Path
+
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+_DIST = Path(__file__).resolve().parents[2] / "web" / "dist"
+if _DIST.exists():
+    app.mount("/assets", StaticFiles(directory=_DIST / "assets"), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def spa(full_path: str) -> FileResponse:
+        return FileResponse(_DIST / "index.html")
