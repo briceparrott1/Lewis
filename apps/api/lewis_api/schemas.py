@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, EmailStr
 
@@ -30,3 +31,28 @@ class ProfileOut(BaseModel):
 
 class PrefsIn(BaseModel):
     raw_prefs_text: str
+
+
+class SavedJobIn(BaseModel):
+    source: str
+    company: str
+    title: str
+    location: str | None = None
+    url: str
+    score: int | None = None
+    reason: str | None = None
+    raw: dict = {}
+
+
+class SavedJobOut(BaseModel):
+    id: uuid.UUID
+    source: str
+    company: str
+    title: str
+    location: str | None
+    url: str
+    score: int | None
+    reason: str | None
+    saved_at: datetime
+
+    model_config = {"from_attributes": True}
