@@ -33,6 +33,11 @@ class PrefsIn(BaseModel):
     raw_prefs_text: str
 
 
+class ChatIn(BaseModel):
+    message: str
+    conversation_id: str
+
+
 class SavedJobIn(BaseModel):
     source: str
     company: str
