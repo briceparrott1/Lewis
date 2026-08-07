@@ -9,6 +9,7 @@ from lewis_api.agent.graph import build_graph
 from lewis_api.agent.llm import AnthropicLLM
 from lewis_api.agent.sources.boards import fetch_all_boards
 from lewis_api.agent.sources.seed import load_seed
+from lewis_api.agent.tracing import init_langfuse, shutdown_langfuse
 from lewis_api.auth.routes import router as auth_router
 from lewis_api.chat.routes import router as chat_router
 from lewis_api.jobs.routes import router as jobs_router
@@ -17,6 +18,7 @@ from lewis_api.profile.routes import router as profile_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    init_langfuse()
     seed = load_seed()
 
     async def fetch_boards(entries, _client):
@@ -29,6 +31,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         AnthropicLLM(), fetch_boards, seed, MemorySaver()
     )
     yield
+    shutdown_langfuse()
 
 
 app = FastAPI(title="Lewis API", lifespan=lifespan)
