@@ -65,6 +65,46 @@ describe("Chat", () => {
     expect(screen.getByText("FDE")).toBeInTheDocument();
   });
 
+  it("does not also show the synthesized fallback count when a real narrative arrived", async () => {
+    vi.mocked(streamChat).mockImplementation(
+      async (_body: unknown, onEvent: (e: ChatEvent) => void) => {
+        onEvent({ type: "narrative", text: "Hey Brice, I found 1 great match." });
+        onEvent({
+          type: "result",
+          job: {
+            source: "ashby", company: "Ramp", title: "FDE", location: "SF",
+            url: "https://x", score: 90, reason: "great",
+          },
+        });
+        onEvent({ type: "done", count: 1 });
+      },
+    );
+    renderChat();
+    await sendMessage("FDE in SF");
+    expect(await screen.findByText("Hey Brice, I found 1 great match.")).toBeInTheDocument();
+    expect(screen.queryByText(/^Found \d+ role/)).not.toBeInTheDocument();
+  });
+
+  it("hides the spinner/ticker as soon as narrative arrives, before the stream resolves", async () => {
+    let resolveStream!: () => void;
+    vi.mocked(streamChat).mockImplementation(
+      (_body: unknown, onEvent: (e: ChatEvent) => void) =>
+        new Promise<void>((resolve) => {
+          onEvent({ type: "narrative", text: "Hey, done already." });
+          resolveStream = resolve;
+        }),
+    );
+    renderChat();
+    await sendMessage("FDE in SF");
+    expect(await screen.findByText("Hey, done already.")).toBeInTheDocument();
+    // streamChat's promise is still pending (busy is still true), but the
+    // spinner/ticker must already be gone because narrative has landed.
+    expect(screen.queryByRole("status", { name: /loading/i })).not.toBeInTheDocument();
+    await act(async () => {
+      resolveStream();
+    });
+  });
+
   it("falls back to a plain count if done arrives with no narrative", async () => {
     vi.mocked(streamChat).mockImplementation(
       async (_body: unknown, onEvent: (e: ChatEvent) => void) => {
