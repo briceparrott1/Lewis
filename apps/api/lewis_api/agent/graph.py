@@ -12,6 +12,7 @@ from lewis_api.agent.rank import rank_jobs
 from lewis_api.agent.select_results import select_results
 from lewis_api.agent.seniority import filter_by_seniority
 from lewis_api.agent.state import AgentState
+from lewis_api.agent.tracing import langfuse_run_config
 from lewis_api.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -118,6 +119,7 @@ async def run_agent(
     user_name: str | None = None,
 ) -> AsyncIterator[dict]:
     config = {"configurable": {"thread_id": thread_id}}
+    config.update(langfuse_run_config(user_id, thread_id))
     inputs = {
         "user_id": user_id,
         "resume_text": resume_text,
