@@ -49,3 +49,9 @@ async def test_login_wrong_password(client):
 async def test_me_requires_auth(client):
     resp = await client.get("/api/auth/me")
     assert resp.status_code == 401
+
+
+async def test_me_rejects_tampered_cookie(client):
+    client.cookies.set("access_token", "tampered.token.value")
+    resp = await client.get("/api/auth/me")
+    assert resp.status_code == 401
