@@ -6,6 +6,7 @@ __pycache__/
 .env.*
 !.env.example
 dist/
+*.tsbuildinfo
 .DS_Store
 .superpowers/
 cookies.txt
