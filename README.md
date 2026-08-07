@@ -95,8 +95,30 @@ curl -N -s -b cookies.txt -X POST localhost:8000/api/chat \
 Send follow-up messages with the same `conversation_id` to continue a conversation
 (e.g. to answer a clarifying question); use a new id to start fresh.
 
+## Frontend (web app)
+
+React + Vite + TypeScript + Tailwind SPA in [`apps/web`](apps/web): signup/login, a
+one-time resume-upload onboarding gate, a streaming chat that consumes `/api/chat`,
+and a saved-jobs view. Requires `pnpm` (`corepack enable pnpm`).
+
+```bash
+cd apps/web
+pnpm install
+pnpm dev        # http://localhost:5173, proxies /api → http://localhost:8000
+pnpm test       # Vitest
+pnpm build      # outputs dist/ (served by FastAPI in prod)
+```
+
+In production the built `apps/web/dist` is served by FastAPI (single origin), so the
+whole app runs from one service. The root `Dockerfile` builds the web app and copies
+it into the API image.
+
 ## Project status
 
 - ✅ **Plan 1 — Foundation & Backend** (auth, profile, jobs, DB, migrations)
 - ✅ **Plan 2 — Agent core & chat** (LangGraph agent + `/api/chat` SSE)
-- ⬜ Plan 3 — Frontend (React SPA)
+- ✅ **Plan 3 — Frontend** (React SPA: signup, onboarding, streaming chat, saved jobs)
+
+**Lewis is a complete, runnable product:** `docker compose up -d db`, run migrations,
+build the web app, and start the API — signup → upload resume → chat to find roles →
+save the best ones.
