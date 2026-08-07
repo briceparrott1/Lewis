@@ -28,3 +28,28 @@ it("uploads a resume file to the API", async () => {
   );
   vi.unstubAllGlobals();
 });
+
+it("also submits the name when provided", async () => {
+  const fetchMock = vi.fn(async () =>
+    new Response(JSON.stringify({ resume_text: "x", name: "Brice" }), {
+      headers: { "content-type": "application/json" },
+    }),
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter><Onboarding /></MemoryRouter>
+    </QueryClientProvider>,
+  );
+  await userEvent.type(screen.getByPlaceholderText(/your first name/i), "Brice");
+  const file = new File(["hi"], "resume.pdf", { type: "application/pdf" });
+  await userEvent.upload(screen.getByLabelText("resume"), file);
+  await waitFor(() =>
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/profile/name",
+      expect.objectContaining({ method: "PUT", body: JSON.stringify({ name: "Brice" }) }),
+    ),
+  );
+  vi.unstubAllGlobals();
+});

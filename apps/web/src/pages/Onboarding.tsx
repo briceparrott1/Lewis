@@ -6,6 +6,7 @@ import { api } from "../api";
 export function Onboarding() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [name, setName] = useState("");
   const nav = useNavigate();
   const qc = useQueryClient();
 
@@ -19,6 +20,7 @@ export function Onboarding() {
     setError("");
     try {
       await api.uploadFile("/profile/resume", file);
+      if (name.trim()) await api.put("/profile/name", { name: name.trim() });
       await qc.invalidateQueries({ queryKey: ["profile"] });
       nav("/");
     } catch {
@@ -34,6 +36,18 @@ export function Onboarding() {
       <p className="mt-2 text-gray-600">
         PDF or DOCX. We use it to match roles to you.
       </p>
+
+      <label className="mt-6 block text-sm font-medium text-gray-700">
+        What should we call you?
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Your first name"
+          disabled={busy}
+          className="mt-1 w-full rounded border p-2 font-normal"
+        />
+      </label>
 
       <label
         className={`mt-6 flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 px-6 py-10 text-center transition hover:border-black hover:bg-gray-50 ${
