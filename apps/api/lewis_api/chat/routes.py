@@ -31,6 +31,7 @@ async def chat(
     profile = await session.get(UserProfile, user.id)
     resume_text = (profile.resume_text if profile else "") or ""
     prior_prefs = (profile.structured_prefs if profile else {}) or {}  # noqa: F841
+    user_name = (profile.name if profile else None) or None
     served_rows = await session.scalars(
         select(ServedJob.job_key).where(ServedJob.user_id == user.id)
     )
@@ -48,6 +49,7 @@ async def chat(
             served_keys=served_keys,
             message=body.message,
             thread_id=thread_id,
+            user_name=user_name,
         ):
             if event["type"] == "done":
                 newly_served = event.get("served_keys", [])
