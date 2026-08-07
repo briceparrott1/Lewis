@@ -42,7 +42,9 @@ async def rank_jobs(
             "title": c.get("title"),
             "company": c.get("company"),
             "location": c.get("location"),
-            "description": (c.get("description") or "")[:2000],
+            # 800 chars keeps ranking signal while holding down input cost across
+            # ~50 candidates (title/company/location carry most of the signal).
+            "description": (c.get("description") or "")[:800],
         }
         for c in candidates
     ]

@@ -44,9 +44,16 @@ def _passes_required(job: Job, prefs: StructuredPrefs) -> bool:
 
 
 def prefilter(jobs: list[Job], prefs: StructuredPrefs, *, cap: int = 50) -> list[Job]:
+    roles = prefs.get("role_keywords", [])
     scored: list[tuple[float, Job]] = []
     for job in jobs:
         if not _passes_required(job, prefs):
+            continue
+        # Role is the primary signal: when the user names role keywords, a job
+        # must match one in its title to be a candidate. This keeps location/
+        # remote as ordering signals (a non-SF matching role still surfaces)
+        # without letting remote-but-irrelevant roles leak through.
+        if roles and not _kw_hit(job.get("title", ""), roles):
             continue
         s = _score(job, prefs)
         if s <= 0:

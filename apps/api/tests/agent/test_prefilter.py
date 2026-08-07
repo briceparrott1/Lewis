@@ -26,6 +26,14 @@ def test_soft_location_does_not_drop_but_scores():
     assert len(out) == 2  # neither dropped (location is soft)
 
 
+def test_role_keywords_require_title_hit_even_if_remote():
+    prefs = {"role_keywords": ["forward deployed"], "remote_ok": True}
+    jobs = [_job("Backend Engineer", "Remote"), _job("Forward Deployed Engineer", "NYC")]
+    out = prefilter(jobs, prefs)
+    assert len(out) == 1  # remote Backend Engineer dropped (no role hit)
+    assert "Forward" in out[0]["title"]
+
+
 def test_zero_signal_dropped_and_cap_applies():
     prefs = {"role_keywords": ["fde"]}
     jobs = [_job("Chef", "SF") for _ in range(3)] + [_job("FDE", "SF")]

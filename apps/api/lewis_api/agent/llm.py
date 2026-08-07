@@ -22,7 +22,10 @@ class AnthropicLLM:
     ) -> dict:
         resp = await self._client.messages.create(
             model=self._model,
-            max_tokens=1500,
+            # Ranking ~50 jobs needs well over 1500 output tokens; a low cap
+            # truncates the tool call and yields empty results. Billing is on
+            # actual output, so a high ceiling is free insurance.
+            max_tokens=8192,
             system=system,
             messages=[{"role": "user", "content": user}],
             tools=[
