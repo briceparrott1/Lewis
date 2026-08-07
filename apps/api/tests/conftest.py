@@ -3,6 +3,7 @@ import os
 import httpx
 import pytest
 from httpx import ASGITransport
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -19,7 +20,27 @@ TEST_DB_URL = os.environ.get(
 
 
 @pytest.fixture
-async def db_session():
+async def _ensure_test_db():
+    """Create the test database if it doesn't exist, so local dev never needs a
+    manual `CREATE DATABASE`. (It persists in the Docker volume once created.)"""
+    db_name = TEST_DB_URL.rsplit("/", 1)[1]
+    admin_url = TEST_DB_URL.rsplit("/", 1)[0] + "/postgres"
+    engine = create_async_engine(
+        admin_url, isolation_level="AUTOCOMMIT", poolclass=NullPool
+    )
+    try:
+        async with engine.connect() as conn:
+            exists = await conn.scalar(
+                text("SELECT 1 FROM pg_database WHERE datname = :n"), {"n": db_name}
+            )
+            if not exists:
+                await conn.execute(text(f'CREATE DATABASE "{db_name}"'))
+    finally:
+        await engine.dispose()
+
+
+@pytest.fixture
+async def db_session(_ensure_test_db):
     """Fresh schema per test. NullPool keeps every connection on the test's own
     event loop, avoiding pytest-asyncio 'different event loop' errors with asyncpg.
     Cheap for our handful of small tables."""

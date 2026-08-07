@@ -38,15 +38,12 @@ cp .env.example .env          # then set ANTHROPIC_API_KEY (needed by the agent,
 # 2. Start Postgres
 docker compose up -d db
 
-# 3. Create the separate test database (once)
-docker compose exec -T db psql -U lewis -d postgres -c "CREATE DATABASE lewis_test;"
-
-# 4. Apply migrations
+# 3. Apply migrations
 cd apps/api
 uv sync
 uv run alembic upgrade head
 
-# 5. Run the API (serves /api/* ; the SPA is added in Plan 3)
+# 4. Run the API (also serves the built SPA from apps/web/dist in prod)
 uv run uvicorn lewis_api.main:app --reload --port 8000
 ```
 
@@ -56,7 +53,7 @@ Health check: <http://localhost:8000/api/health>
 
 ```bash
 cd apps/api
-uv run pytest -q          # uses the lewis_test database
+uv run pytest -q          # auto-creates + uses the lewis_test database
 uv run ruff check .       # lint
 uv run black --check .    # format
 ```
