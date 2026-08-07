@@ -42,8 +42,13 @@ export function useStatusTicker(
   } = options;
 
   const [displayText, setDisplayText] = useState<string | null>(null);
-  const lastChangeAt = useRef(0);
-  const lastRealAt = useRef(0);
+  // Seed with mount time (not 0/epoch): if `active` starts true while
+  // `realText` is still null, the "real text wins" effect below never runs
+  // to set these, so an epoch-0 baseline would make the very first interval
+  // tick see a multi-decade "elapsed" time and skip straight past every
+  // timing floor into an instant filler swap.
+  const lastChangeAt = useRef(Date.now());
+  const lastRealAt = useRef(Date.now());
 
   useEffect(() => {
     if (!active || realText === null) return;
