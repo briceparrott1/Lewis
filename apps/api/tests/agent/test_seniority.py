@@ -14,6 +14,9 @@ from lewis_api.agent.seniority import classify_relationship, filter_by_seniority
         ("mid", "unknown", "unrestricted"),
         (None, "intern", "unrestricted"),
         ("staff", "staff", "exact"),  # top of ladder, no tier above
+        ("Senior", "senior", "exact"),  # case variance normalized
+        ("mid", "New Grad", "exclude"),  # spaces normalized, one tier below
+        ("senior-level", "senior", "unrestricted"),  # not a real ladder value
     ],
 )
 def test_classify_relationship(user_level, job_level, expected):
