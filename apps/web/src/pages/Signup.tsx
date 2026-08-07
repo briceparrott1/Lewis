@@ -15,10 +15,10 @@ export function Signup() {
     setError("");
     try {
       await api.post("/auth/signup", { email, password });
-      refresh();
+      await refresh(); // wait for the "me" query to refetch before routing (guards read it)
       nav("/");
     } catch {
-      setError("Invalid email or password");
+      setError("Could not sign up — that email may already be registered.");
     }
   }
 

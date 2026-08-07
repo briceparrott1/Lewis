@@ -11,8 +11,16 @@ async function fetchMe(): Promise<User | null> {
   }
 }
 
-interface AuthValue { user: User | null; loading: boolean; refresh: () => void; }
-const Ctx = createContext<AuthValue>({ user: null, loading: true, refresh: () => {} });
+interface AuthValue {
+  user: User | null;
+  loading: boolean;
+  refresh: () => Promise<void>;
+}
+const Ctx = createContext<AuthValue>({
+  user: null,
+  loading: true,
+  refresh: async () => {},
+});
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();

@@ -15,7 +15,7 @@ export function Login() {
     setError("");
     try {
       await api.post("/auth/login", { email, password });
-      refresh();
+      await refresh(); // wait for the "me" query to refetch before routing (guards read it)
       nav("/");
     } catch {
       setError("Invalid email or password");
