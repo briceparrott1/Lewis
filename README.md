@@ -61,15 +61,14 @@ uv run ruff check .       # lint
 uv run black --check .    # format
 ```
 
-## API (implemented so far — Plan 1)
+## API (implemented so far — Plans 1 & 2)
 
 | Method + path | Purpose |
 |---|---|
 | `POST /api/auth/signup` · `login` · `logout` · `GET /api/auth/me` | Cookie-based JWT auth |
 | `GET /api/profile` · `POST /api/profile/resume` · `PUT /api/profile/prefs` | Resume (PDF/DOCX) + preferences |
 | `GET /api/jobs` · `POST /api/jobs` · `DELETE /api/jobs/{id}` | Saved jobs |
-
-`POST /api/chat` (the streaming agent) arrives in **Plan 2**.
+| `POST /api/chat` | **Streaming agent search (SSE)** |
 
 ### Quick smoke test
 
@@ -79,8 +78,25 @@ curl -i -c cookies.txt -X POST localhost:8000/api/auth/signup \
 curl -s -b cookies.txt localhost:8000/api/auth/me
 ```
 
+### Chat (agent search)
+
+Requires `ANTHROPIC_API_KEY` set in `.env`. `POST /api/chat` streams Server-Sent
+Events (`status`, `clarify`, `result`, `done`). It scans the seed companies'
+Greenhouse/Ashby boards, filters + ranks against your resume and stated
+preferences (Claude, default Haiku), returns the top few, and never repeats a job
+it has already shown you.
+
+```bash
+curl -N -s -b cookies.txt -X POST localhost:8000/api/chat \
+  -H 'content-type: application/json' \
+  -d '{"message":"forward deployed engineer roles, remote OK","conversation_id":"c1"}'
+```
+
+Send follow-up messages with the same `conversation_id` to continue a conversation
+(e.g. to answer a clarifying question); use a new id to start fresh.
+
 ## Project status
 
 - ✅ **Plan 1 — Foundation & Backend** (auth, profile, jobs, DB, migrations)
-- ⬜ Plan 2 — Agent core & chat (LangGraph + SSE)
+- ✅ **Plan 2 — Agent core & chat** (LangGraph agent + `/api/chat` SSE)
 - ⬜ Plan 3 — Frontend (React SPA)

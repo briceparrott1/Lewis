@@ -1359,6 +1359,27 @@ git push origin main
 
 **Type consistency:** `LLM.structured`, `parse_prefs`, `is_sufficient`, `prefilter`, `rank_jobs`, `fetch_all_boards`, `job_key`, `build_graph`, `run_agent`, `Job`/`RankedJob`/`StructuredPrefs`/`AgentState`, and `ChatIn` are referenced with consistent names/signatures across tasks.
 
+## Post-implementation fixes (from the Task 9 live smoke)
+
+The live smoke surfaced two issues the mocked tests could not:
+
+1. **Ranking token truncation** — `AnthropicLLM.structured` used `max_tokens=1500`;
+   ranking ~50 jobs needs ~1650 output tokens, so the tool call truncated
+   (`stop_reason=max_tokens`) → empty rankings → all scores 0. Fixed by raising the
+   cap to 8192 (billed on actual output, so effectively free). Also reduced the
+   per-candidate description sent to the ranker from 2000 → 800 chars to cut input
+   cost across 50 candidates.
+2. **Prefilter leaked remote-but-irrelevant roles** — a job with no role-title match
+   still passed on a remote/location soft-score. Fixed: when `role_keywords` are
+   present, a job must have a role-title hit to be a candidate (location/remote stay
+   ordering signals). Added `test_role_keywords_require_title_hit_even_if_remote`.
+
+Verified by re-running the live smoke: real 0–100 scores, only role-relevant jobs.
+
+**Deferred minor:** the `search` node's status text ("Ranking N matches…") reports
+the pre-prefilter count; cosmetically it should report the post-prefilter candidate
+count. Non-blocking.
+
 ## Notes carried to Plan 3 (Frontend)
 
 - SSE event shapes are final: `status{text}`, `clarify{question}`, `result{job}`, `done{count}`.
