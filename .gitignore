@@ -11,3 +11,4 @@ dist/
 .superpowers/
 cookies.txt
 *.egg-info/
+.claude/

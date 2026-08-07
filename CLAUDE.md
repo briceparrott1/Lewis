@@ -1,5 +1,20 @@
 # Lewis — Workflow
 
+## Code Priorities
+
+When writing code, prioritize:
+
+1. **Human-understandable** — a reader should be able to follow it without
+   extra explanation.
+2. **Concise** — no more code than the problem requires.
+
+When a new case doesn't fit existing code cleanly, prefer altering or
+removing something upstream over bolting on another exception or special
+case. An upstream fix keeps the code simple for the *next* change too;
+another exception just compounds.
+
+When these two priorities conflict with each other, use judgement.
+
 ## Orchestrator & Delegation
 
 For new features or creative work, the standard `superpowers:brainstorming` →

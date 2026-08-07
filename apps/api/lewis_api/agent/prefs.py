@@ -7,7 +7,10 @@ _SCHEMA = {
         "role_keywords": {"type": "array", "items": {"type": "string"}},
         "locations": {"type": "array", "items": {"type": "string"}},
         "remote_ok": {"type": ["boolean", "null"]},
-        "seniority": {"type": ["string", "null"]},
+        "seniority": {
+            "type": ["string", "null"],
+            "enum": ["intern", "new_grad", "mid", "senior", "staff", None],
+        },
         "extra": {"type": "string"},
         "required": {"type": "array", "items": {"type": "string"}},
         "priorities": {"type": "array", "items": {"type": "string"}},

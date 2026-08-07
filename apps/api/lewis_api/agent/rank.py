@@ -3,6 +3,8 @@ import json
 from lewis_api.agent.llm import LLM
 from lewis_api.agent.state import Job, RankedJob, StructuredPrefs
 
+_VALID_SENIORITY = {"intern", "new_grad", "mid", "senior", "staff", "unknown"}
+
 _SCHEMA = {
     "type": "object",
     "properties": {
@@ -14,8 +16,19 @@ _SCHEMA = {
                     "external_id": {"type": "string"},
                     "score": {"type": "integer"},
                     "reason": {"type": "string"},
+                    "seniority": {
+                        "type": "string",
+                        "enum": [
+                            "intern",
+                            "new_grad",
+                            "mid",
+                            "senior",
+                            "staff",
+                            "unknown",
+                        ],
+                    },
                 },
-                "required": ["external_id", "score", "reason"],
+                "required": ["external_id", "score", "reason", "seniority"],
             },
         }
     },
@@ -26,7 +39,11 @@ _SYSTEM = (
     "Score each candidate job 0-100 for how well it fits the user's resume and "
     "preferences. Trade off soft preferences in the order given by 'priorities' "
     "(most important first); never violate a 'required' dimension. Give a concise "
-    "one-line reason per job, citing tradeoffs where relevant."
+    "one-line reason per job, citing tradeoffs where relevant. Also classify each "
+    "job's seniority level as one of intern, new_grad, mid, senior, or staff, based "
+    "only on explicit signals in its title or description (e.g. 'Senior', 'New Grad', "
+    "'Staff', years-of-experience ranges). If the title and description give no clear "
+    "seniority signal, classify it as unknown rather than guessing."
 )
 
 
@@ -60,8 +77,16 @@ async def rank_jobs(
     ranked: list[RankedJob] = []
     for c in candidates:
         r = by_id.get(c.get("external_id"), {})
+        seniority = r.get("seniority", "unknown")
+        if seniority not in _VALID_SENIORITY:
+            seniority = "unknown"
         ranked.append(
-            RankedJob(**c, score=int(r.get("score", 0)), reason=r.get("reason", ""))
+            RankedJob(
+                **c,
+                score=int(r.get("score", 0)),
+                reason=r.get("reason", ""),
+                seniority=seniority,
+            )
         )
     ranked.sort(key=lambda j: j.get("score", 0), reverse=True)
     return ranked

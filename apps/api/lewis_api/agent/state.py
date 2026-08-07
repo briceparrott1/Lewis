@@ -28,6 +28,7 @@ class Job(TypedDict, total=False):
 class RankedJob(Job, total=False):
     score: int
     reason: str
+    seniority: Literal["intern", "new_grad", "mid", "senior", "staff", "unknown"]
 
 
 class AgentState(TypedDict, total=False):

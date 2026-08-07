@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncIterator
 
 from langgraph.config import get_stream_writer
@@ -8,8 +9,12 @@ from lewis_api.agent.normalize import job_key
 from lewis_api.agent.prefilter import prefilter
 from lewis_api.agent.prefs import is_sufficient, parse_prefs
 from lewis_api.agent.rank import rank_jobs
+from lewis_api.agent.select_results import select_results
+from lewis_api.agent.seniority import filter_by_seniority
 from lewis_api.agent.state import AgentState
 from lewis_api.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 CLARIFY_TEXT = (
     "To narrow this down: which locations are you targeting, or is remote OK? "
@@ -63,7 +68,15 @@ def build_graph(llm, fetch_boards, seed, checkpointer):
 
     async def respond(state: AgentState) -> dict:
         writer = get_stream_writer()
-        top = state.get("ranked", [])[: get_settings().max_results]
+        ranked = state.get("ranked", [])
+        eligible = filter_by_seniority(ranked, state["prefs"])
+        top = select_results(eligible, state["prefs"], get_settings().max_results)
+        logger.info(
+            "respond funnel: ranked=%d eligible=%d top=%d",
+            len(ranked),
+            len(eligible),
+            len(top),
+        )
         writer({"type": "status", "text": "Writing up what I found…"})
         narrative = await narrate_results(
             top,
