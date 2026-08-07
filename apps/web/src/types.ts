@@ -4,6 +4,7 @@ export interface User {
 }
 
 export interface Profile {
+  name: string | null;
   resume_text: string | null;
   raw_prefs_text: string | null;
   structured_prefs: Record<string, unknown>;
@@ -27,5 +28,6 @@ export interface SavedJob extends RankedJob {
 export type ChatEvent =
   | { type: "status"; text: string }
   | { type: "clarify"; question: string }
+  | { type: "narrative"; text: string }
   | { type: "result"; job: RankedJob }
   | { type: "done"; count: number };
