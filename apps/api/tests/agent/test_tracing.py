@@ -1,5 +1,3 @@
-import pytest
-
 from lewis_api.agent.tracing import (
     init_langfuse,
     langfuse_run_config,
