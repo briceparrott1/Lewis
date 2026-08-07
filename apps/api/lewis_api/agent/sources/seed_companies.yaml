@@ -1,2 +1,111 @@
+# Seed list of companies to scan for jobs.
+# Each entry: {company, source, board_token} where source is "greenhouse" or "ashby".
+# All tokens below were live-verified (HTTP 200 + non-empty job list) against:
+#   greenhouse: https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs
+#   ashby:      https://api.ashbyhq.com/posting-api/job-board/{board_token}
 - {company: GitLab, source: greenhouse, board_token: gitlab}
 - {company: Ramp, source: ashby, board_token: ramp}
+- {company: Abnormal Security, source: greenhouse, board_token: abnormalsecurity}
+- {company: Affirm, source: greenhouse, board_token: affirm}
+- {company: Airbnb, source: greenhouse, board_token: airbnb}
+- {company: Airtable, source: greenhouse, board_token: airtable}
+- {company: Alloy, source: greenhouse, board_token: alloy}
+- {company: Amplitude, source: greenhouse, board_token: amplitude}
+- {company: Anthropic, source: greenhouse, board_token: anthropic}
+- {company: Asana, source: greenhouse, board_token: asana}
+- {company: Attentive, source: greenhouse, board_token: attentive}
+- {company: Benchling, source: ashby, board_token: benchling}
+- {company: Betterment, source: greenhouse, board_token: betterment}
+- {company: Blend, source: greenhouse, board_token: blend}
+- {company: Branch, source: greenhouse, board_token: branchmetrics}
+- {company: Braze, source: greenhouse, board_token: braze}
+- {company: Brex, source: greenhouse, board_token: brex}
+- {company: Brightwheel, source: ashby, board_token: brightwheel}
+- {company: Carta, source: greenhouse, board_token: carta}
+- {company: Checkr, source: greenhouse, board_token: checkr}
+- {company: Chime, source: greenhouse, board_token: chime}
+- {company: CircleCI, source: greenhouse, board_token: circleci}
+- {company: ClassPass, source: greenhouse, board_token: classpass}
+- {company: Clever, source: greenhouse, board_token: clever}
+- {company: ClickHouse, source: greenhouse, board_token: clickhouse}
+- {company: Cloudflare, source: greenhouse, board_token: cloudflare}
+- {company: Cockroach Labs, source: greenhouse, board_token: cockroachlabs}
+- {company: Coinbase, source: greenhouse, board_token: coinbase}
+- {company: Collective Health, source: greenhouse, board_token: collectivehealth}
+- {company: Column, source: ashby, board_token: column}
+- {company: Coursera, source: greenhouse, board_token: coursera}
+- {company: Cribl, source: greenhouse, board_token: cribl}
+- {company: Current, source: greenhouse, board_token: current}
+- {company: Databricks, source: greenhouse, board_token: databricks}
+- {company: Datadog, source: greenhouse, board_token: datadog}
+- {company: Diligent, source: greenhouse, board_token: diligent}
+- {company: Discord, source: greenhouse, board_token: discord}
+- {company: Dropbox, source: greenhouse, board_token: dropbox}
+- {company: Elastic, source: greenhouse, board_token: elastic}
+- {company: Faire, source: greenhouse, board_token: faire}
+- {company: Figma, source: greenhouse, board_token: figma}
+- {company: Fivetran, source: greenhouse, board_token: fivetran}
+- {company: Flatiron Health, source: greenhouse, board_token: flatironhealth}
+- {company: Flexport, source: greenhouse, board_token: flexport}
+- {company: Gemini, source: greenhouse, board_token: gemini}
+- {company: Glossier, source: greenhouse, board_token: glossier}
+- {company: Gusto, source: greenhouse, board_token: gusto}
+- {company: HackerRank, source: greenhouse, board_token: hackerrank}
+- {company: Handshake, source: ashby, board_token: handshake}
+- {company: "Harry's", source: greenhouse, board_token: harrys}
+- {company: Hex, source: ashby, board_token: hex}
+- {company: Instabase, source: greenhouse, board_token: instabase}
+- {company: Instacart, source: greenhouse, board_token: instacart}
+- {company: Intercom, source: greenhouse, board_token: intercom}
+- {company: Justworks, source: greenhouse, board_token: justworks}
+- {company: LaunchDarkly, source: greenhouse, board_token: launchdarkly}
+- {company: Lattice, source: greenhouse, board_token: lattice}
+- {company: Linear, source: ashby, board_token: linear}
+- {company: Lyft, source: greenhouse, board_token: lyft}
+- {company: Marqeta, source: greenhouse, board_token: marqeta}
+- {company: Material Security, source: ashby, board_token: materialsecurity}
+- {company: Mercor, source: ashby, board_token: mercor}
+- {company: Mixpanel, source: greenhouse, board_token: mixpanel}
+- {company: Modern Treasury, source: ashby, board_token: moderntreasury}
+- {company: MongoDB, source: greenhouse, board_token: mongodb}
+- {company: Narvar, source: greenhouse, board_token: narvar}
+- {company: Neo4j, source: greenhouse, board_token: neo4j}
+- {company: New Relic, source: greenhouse, board_token: newrelic}
+- {company: Newsela, source: greenhouse, board_token: newsela}
+- {company: Nextdoor, source: greenhouse, board_token: nextdoor}
+- {company: Notion, source: ashby, board_token: notion}
+- {company: OpenAI, source: ashby, board_token: openai}
+- {company: Okta, source: greenhouse, board_token: okta}
+- {company: Oscar Health, source: greenhouse, board_token: oscar}
+- {company: PagerDuty, source: greenhouse, board_token: pagerduty}
+- {company: Peloton, source: greenhouse, board_token: peloton}
+- {company: Perplexity, source: ashby, board_token: perplexity}
+- {company: Persona, source: ashby, board_token: persona}
+- {company: Pinterest, source: greenhouse, board_token: pinterest}
+- {company: PlanetScale, source: greenhouse, board_token: planetscale}
+- {company: Postman, source: greenhouse, board_token: postman}
+- {company: Reddit, source: greenhouse, board_token: reddit}
+- {company: Replit, source: ashby, board_token: replit}
+- {company: Rho, source: ashby, board_token: rho}
+- {company: Ripple, source: greenhouse, board_token: ripple}
+- {company: Robinhood, source: greenhouse, board_token: robinhood}
+- {company: Samsara, source: greenhouse, board_token: samsara}
+- {company: Scale AI, source: greenhouse, board_token: scaleai}
+- {company: Semgrep, source: ashby, board_token: semgrep}
+- {company: Sentry, source: ashby, board_token: sentry}
+- {company: SoFi, source: greenhouse, board_token: sofi}
+- {company: Squarespace, source: greenhouse, board_token: squarespace}
+- {company: Stitch Fix, source: greenhouse, board_token: stitchfix}
+- {company: Stripe, source: greenhouse, board_token: stripe}
+- {company: Twilio, source: greenhouse, board_token: twilio}
+- {company: Upstart, source: greenhouse, board_token: upstart}
+- {company: Vanta, source: ashby, board_token: vanta}
+- {company: Verkada, source: greenhouse, board_token: verkada}
+- {company: VTS, source: greenhouse, board_token: vts}
+- {company: Watershed, source: ashby, board_token: watershed}
+- {company: Webflow, source: greenhouse, board_token: webflow}
+- {company: Wiz, source: greenhouse, board_token: wizinc}
+- {company: Workato, source: greenhouse, board_token: workato}
+- {company: Zeta Global, source: greenhouse, board_token: zetaglobal}
+- {company: Zip, source: ashby, board_token: zip}
+- {company: ZocDoc, source: greenhouse, board_token: zocdoc}
