@@ -1,27 +1,37 @@
 import pytest
 from langgraph.checkpoint.memory import MemorySaver
 
+from lewis_api.agent.clarify import CLARIFY_TEXT
 from lewis_api.agent.graph import build_graph, run_agent
+from lewis_api.agent.narrate import fallback_text
 from lewis_api.agent.sources.seed import SeedEntry
 
 
 class FakeLLM:
     def __init__(
-        self, prefs_payload, rank_payload, narrative_text="Here's what I found."
+        self,
+        prefs_payload,
+        rank_payload,
+        narrative_text="Here's what I found.",
+        empty_stream=False,
     ):
         self.prefs_payload = prefs_payload
         self.rank_payload = rank_payload
         self.narrative_text = narrative_text
-        self.complete_calls = []
+        self.empty_stream = empty_stream
+        self.stream_calls = []
 
     async def structured(self, system, user, tool_name, schema):
         if tool_name == "record_preferences":
             return self.prefs_payload
         return self.rank_payload
 
-    async def complete(self, system, user):
-        self.complete_calls.append(user)
-        return self.narrative_text
+    async def stream(self, system, user):
+        self.stream_calls.append(user)
+        if self.empty_stream:
+            return
+        for chunk in self.narrative_text.split(" "):
+            yield chunk + " "
 
 
 async def _fake_fetch(entries, client):
@@ -71,6 +81,7 @@ async def test_clear_query_streams_results_and_reports_served():
             graph,
             user_id="u1",
             resume_text="r",
+            prior_prefs={},
             served_keys=[],
             message="FDE in SF",
             thread_id="u1:c1",
@@ -85,9 +96,11 @@ async def test_clear_query_streams_results_and_reports_served():
     results = [e for e in events if e["type"] == "result"]
     assert results[0]["job"]["title"] == "Forward Deployed Engineer"  # barista filtered
     assert events[-1]["served_keys"] == ["https://jobs.ashbyhq.com/ramp/1"]
-    # Proves the run_agent -> AgentState -> respond -> narrate_results hop
-    # actually threads user_name through, not just the two endpoints.
-    assert any("Brice" in call for call in llm.complete_calls)
+    # Proves the run_agent -> AgentState -> respond -> stream_narrative_results
+    # hop actually threads user_name through, not just the two endpoints.
+    assert any("Brice" in call for call in llm.stream_calls)
+    assert "narrative_delta" in types
+    assert types.index("narrative_delta") < types.index("narrative")
 
 
 @pytest.mark.asyncio
@@ -102,6 +115,7 @@ async def test_vague_query_asks_one_clarify_then_searches():
             graph,
             user_id="u1",
             resume_text="r",
+            prior_prefs={},
             served_keys=[],
             message="I want a tech job",
             thread_id="u1:c2",
@@ -109,15 +123,19 @@ async def test_vague_query_asks_one_clarify_then_searches():
     ]
     types_first = [e["type"] for e in first]
     assert first[0]["type"] == "status"  # "Reading your resume..." comes first now
+    assert "clarify_delta" in types_first
+    assert types_first.index("clarify_delta") < types_first.index("clarify")
     assert "clarify" in types_first and types_first[-1] == "done"
 
     # second turn, same thread — now proceeds (clarified_once persists)
+    first_prefs = first[-1]["prefs"]
     second = [
         e
         async for e in run_agent(
             graph,
             user_id="u1",
             resume_text="r",
+            prior_prefs=first_prefs,
             served_keys=[],
             message="in SF",
             thread_id="u1:c2",
@@ -143,6 +161,7 @@ async def test_served_jobs_excluded():
             graph,
             user_id="u1",
             resume_text="r",
+            prior_prefs={},
             served_keys=["https://jobs.ashbyhq.com/ramp/1"],  # already served
             message="FDE in SF",
             thread_id="u1:c3",
@@ -215,6 +234,7 @@ async def test_respond_applies_company_diversity_cap():
             graph,
             user_id="u1",
             resume_text="r",
+            prior_prefs={},
             served_keys=[],
             message="SWE in SF",
             thread_id="u1:c4",
@@ -285,6 +305,7 @@ async def test_respond_excludes_seniority_mismatch():
             graph,
             user_id="u1",
             resume_text="r",
+            prior_prefs={},
             served_keys=[],
             message="senior SWE in SF",
             thread_id="u1:c5",
@@ -292,3 +313,86 @@ async def test_respond_excludes_seniority_mismatch():
     ]
     results = [e["job"] for e in events if e["type"] == "result"]
     assert [j["external_id"] for j in results] == ["senior-role"]
+
+
+@pytest.mark.asyncio
+async def test_done_event_reports_final_merged_prefs():
+    graph, _llm = _graph(
+        {"role_keywords": ["fde"], "locations": ["SF"], "required": ["role"]},
+        {"rankings": []},
+    )
+    events = [
+        e
+        async for e in run_agent(
+            graph,
+            user_id="u1",
+            resume_text="r",
+            prior_prefs={"remote_ok": True},
+            served_keys=[],
+            message="FDE in SF",
+            thread_id="u1:c6",
+        )
+    ]
+    done = events[-1]
+    assert done["type"] == "done"
+    assert done["prefs"]["role_keywords"] == ["fde"]
+    assert done["prefs"]["remote_ok"] is True  # prior preserved
+
+
+@pytest.mark.asyncio
+async def test_clarify_falls_back_when_stream_yields_nothing():
+    llm = FakeLLM(
+        {"role_keywords": ["engineer"]},  # no location/remote → insufficient
+        {"rankings": []},
+        empty_stream=True,
+    )
+    seed = [SeedEntry("Ramp", "ashby", "ramp")]
+    graph = build_graph(llm, _fake_fetch, seed, MemorySaver())
+    events = [
+        e
+        async for e in run_agent(
+            graph,
+            user_id="u1",
+            resume_text="r",
+            prior_prefs={},
+            served_keys=[],
+            message="I want a tech job",
+            thread_id="u1:c7",
+        )
+    ]
+    clarify_events = [e for e in events if e["type"] == "clarify"]
+    assert len(clarify_events) == 1
+    assert clarify_events[0]["question"] == CLARIFY_TEXT
+    assert clarify_events[0]["question"].strip() != ""
+
+
+@pytest.mark.asyncio
+async def test_respond_falls_back_when_stream_yields_nothing():
+    llm = FakeLLM(
+        {
+            "role_keywords": ["forward deployed"],
+            "locations": ["SF"],
+            "required": ["role"],
+        },
+        {"rankings": [{"external_id": "1", "score": 90, "reason": "great FDE"}]},
+        empty_stream=True,
+    )
+    seed = [SeedEntry("Ramp", "ashby", "ramp")]
+    graph = build_graph(llm, _fake_fetch, seed, MemorySaver())
+    events = [
+        e
+        async for e in run_agent(
+            graph,
+            user_id="u1",
+            resume_text="r",
+            prior_prefs={},
+            served_keys=[],
+            message="FDE in SF",
+            thread_id="u1:c8",
+        )
+    ]
+    narrative_events = [e for e in events if e["type"] == "narrative"]
+    results = [e for e in events if e["type"] == "result"]
+    assert len(narrative_events) == 1
+    assert narrative_events[0]["text"] == fallback_text(len(results))
+    assert narrative_events[0]["text"].strip() != ""

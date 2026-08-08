@@ -1,6 +1,6 @@
 import pytest
 
-from lewis_api.agent.prefs import is_sufficient, parse_prefs
+from lewis_api.agent.prefs import is_sufficient, missing_fields, parse_prefs
 
 
 class FakeLLM:
@@ -30,3 +30,20 @@ async def test_parse_prefs_merges_prior():
     assert out["role_keywords"] == ["fde"]
     assert out["locations"] == ["SF"]
     assert out["remote_ok"] is True  # prior preserved
+
+
+def test_missing_fields_lists_gaps():
+    assert missing_fields({}) == ["role", "location or remote work", "seniority level"]
+    assert missing_fields({"role_keywords": ["fde"]}) == [
+        "location or remote work",
+        "seniority level",
+    ]
+    assert (
+        missing_fields(
+            {"role_keywords": ["fde"], "locations": ["SF"], "seniority": "mid"}
+        )
+        == []
+    )
+    assert missing_fields({"role_keywords": ["fde"], "remote_ok": True}) == [
+        "seniority level"
+    ]

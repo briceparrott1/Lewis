@@ -65,3 +65,39 @@ async def test_chat_passes_user_name_to_agent(client, monkeypatch):
     r = await client.post("/api/chat", json={"message": "hi", "conversation_id": "c1"})
     assert r.status_code == 200
     assert captured["user_name"] == "Brice"
+
+
+@pytest.mark.asyncio
+async def test_chat_seeds_prior_prefs_from_profile_and_persists_final_prefs(
+    client, monkeypatch
+):
+    await _signup(client, "prefs@e.com")
+    captured = []
+
+    async def fake_run_agent(*args, **kwargs):
+        captured.append(kwargs["prior_prefs"])
+        yield {
+            "type": "done",
+            "count": 0,
+            "served_keys": [],
+            "prefs": {"role_keywords": ["fde"]},
+        }
+
+    monkeypatch.setattr(chat_routes, "run_agent", fake_run_agent)
+    app.state.agent_graph = object()
+
+    r1 = await client.post(
+        "/api/chat", json={"message": "fde jobs", "conversation_id": "c1"}
+    )
+    assert r1.status_code == 200
+    assert captured[0] == {}  # nothing stored yet
+
+    prof = await client.get("/api/profile")
+    assert prof.json()["structured_prefs"] == {"role_keywords": ["fde"]}
+
+    # New conversation_id (simulates "New chat") — prefs must still carry over
+    r2 = await client.post(
+        "/api/chat", json={"message": "anything else", "conversation_id": "c2"}
+    )
+    assert r2.status_code == 200
+    assert captured[1] == {"role_keywords": ["fde"]}

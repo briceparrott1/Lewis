@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { JobCard } from "../components/JobCard";
 import { useJobs, useUnsaveJob } from "../queries";
 
@@ -8,13 +7,10 @@ export function Saved() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-3 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Saved jobs</h1>
-        <Link className="text-sm text-blue-600" to="/">
-          Back to search
-        </Link>
+        <h1 className="text-xl font-semibold text-fg">Saved jobs</h1>
       </div>
-      {isLoading && <p>Loading…</p>}
-      {data && data.length === 0 && <p className="text-gray-600">No saved jobs yet.</p>}
+      {isLoading && <p className="text-muted">Loading…</p>}
+      {data && data.length === 0 && <p className="text-muted">No saved jobs yet.</p>}
       {data?.map((job) => (
         <JobCard
           key={job.id}

@@ -40,13 +40,13 @@ export function Onboarding() {
   }
 
   return (
-    <div className="mx-auto mt-24 max-w-md p-6">
-      <h1 className="text-2xl font-semibold">Upload your resume</h1>
-      <p className="mt-2 text-gray-600">
+    <div className="mx-auto mt-16 max-w-md p-6">
+      <h1 className="text-2xl font-semibold text-fg">Upload your resume</h1>
+      <p className="mt-2 text-muted">
         PDF or DOCX. We use it to match roles to you.
       </p>
 
-      <label className="mt-6 block text-sm font-medium text-gray-700">
+      <label className="mt-6 block text-sm font-medium text-fg">
         What should we call you?
         <input
           type="text"
@@ -54,19 +54,19 @@ export function Onboarding() {
           onChange={(e) => setName(e.target.value)}
           placeholder="Your first name"
           disabled={busy}
-          className="mt-1 w-full rounded border p-2 font-normal"
+          className="mt-1 w-full rounded-lg border border-border bg-surface p-2 font-normal text-fg"
         />
       </label>
 
       <label
-        className={`mt-6 flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 px-6 py-10 text-center transition hover:border-black hover:bg-gray-50 ${
+        className={`mt-6 flex cursor-pointer flex-col items-center justify-center rounded-bubble border-2 border-dashed border-border bg-surface px-6 py-10 text-center shadow-soft transition hover:border-accent ${
           busy ? "pointer-events-none opacity-60" : ""
         }`}
       >
-        <span className="text-lg font-medium">
+        <span className="text-lg font-medium text-fg">
           {busy ? "Uploading…" : "Choose a PDF or DOCX file"}
         </span>
-        <span className="mt-1 text-sm text-gray-500">
+        <span className="mt-1 text-sm text-muted">
           {fileName || "Click here to browse"}
         </span>
         <input
@@ -79,7 +79,7 @@ export function Onboarding() {
         />
       </label>
 
-      {error && <p className="mt-3 text-red-600">{error}</p>}
+      {error && <p className="mt-3 text-error">{error}</p>}
     </div>
   );
 }

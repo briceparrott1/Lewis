@@ -1,4 +1,5 @@
 import json
+from collections.abc import AsyncIterator
 
 from lewis_api.agent.llm import LLM
 from lewis_api.agent.state import RankedJob, StructuredPrefs
@@ -19,16 +20,12 @@ _NO_RESULTS = (
 )
 
 
-async def narrate_results(
-    ranked: list[RankedJob],
-    prefs: StructuredPrefs,
-    resume_text: str,
-    user_name: str | None,
-    llm: LLM,
-) -> str:
-    if not ranked:
-        return _NO_RESULTS
-    compact = [
+def fallback_text(n: int) -> str:
+    return f"I found {n} job{'s' if n != 1 else ''} matching your search."
+
+
+def _compact(ranked: list[RankedJob]) -> list[dict]:
+    return [
         {
             "title": j.get("title"),
             "company": j.get("company"),
@@ -38,13 +35,26 @@ async def narrate_results(
         }
         for j in ranked
     ]
+
+
+async def stream_narrative_results(
+    ranked: list[RankedJob],
+    prefs: StructuredPrefs,
+    resume_text: str,
+    user_name: str | None,
+    llm: LLM,
+) -> AsyncIterator[str]:
+    """Yields the narrative text as chunks arrive from the LLM. Raises on LLM
+    failure — the caller (graph.py's respond node) falls back to
+    fallback_text(), since by the time a mid-stream error can occur, earlier
+    chunks may already be visible to the user."""
+    if not ranked:
+        yield _NO_RESULTS
+        return
     user = (
         f"User's name: {user_name or 'there'}\n\n"
         f"Preferences: {json.dumps(prefs)}\n\n"
-        f"Ranked results, best first:\n{json.dumps(compact)}"
+        f"Ranked results, best first:\n{json.dumps(_compact(ranked))}"
     )
-    try:
-        return await llm.complete(system=_SYSTEM, user=user)
-    except Exception:  # noqa: BLE001
-        n = len(ranked)
-        return f"I found {n} job{'s' if n != 1 else ''} matching your search."
+    async for chunk in llm.stream(system=_SYSTEM, user=user):
+        yield chunk

@@ -49,3 +49,18 @@ def is_sufficient(prefs: StructuredPrefs) -> bool:
     has_role = bool(prefs.get("role_keywords"))
     has_place = bool(prefs.get("locations")) or prefs.get("remote_ok") is True
     return has_role and has_place
+
+
+def missing_fields(prefs: StructuredPrefs) -> list[str]:
+    """Human-readable list of preference gaps to ask about. Role and
+    location/remote gate whether the graph can search (see is_sufficient);
+    seniority is included too since Lewis always asks for it, even though it
+    isn't gating."""
+    missing = []
+    if not prefs.get("role_keywords"):
+        missing.append("role")
+    if not prefs.get("locations") and prefs.get("remote_ok") is not True:
+        missing.append("location or remote work")
+    if not prefs.get("seniority"):
+        missing.append("seniority level")
+    return missing
