@@ -9,13 +9,37 @@ import type { ChatEvent, RankedJob } from "../types";
 
 type Item =
   | { kind: "user"; text: string }
-  | { kind: "clarify"; text: string }
-  | { kind: "narrative"; text: string }
+  | { kind: "clarify"; text: string; streaming?: boolean }
+  | { kind: "narrative"; text: string; streaming?: boolean }
   | { kind: "result"; job: RankedJob };
 
-function reducer(items: Item[], ev: Item | { kind: "reset" }): Item[] {
-  if (ev.kind === "reset") return [];
-  return [...items, ev];
+type Action =
+  | { kind: "reset" }
+  | { kind: "user"; text: string }
+  | { kind: "delta"; itemKind: "clarify" | "narrative"; text: string }
+  | { kind: "finalize"; itemKind: "clarify" | "narrative"; text: string }
+  | { kind: "result"; job: RankedJob };
+
+function reducer(items: Item[], action: Action): Item[] {
+  const last = items[items.length - 1];
+  switch (action.kind) {
+    case "reset":
+      return [];
+    case "user":
+      return [...items, { kind: "user", text: action.text }];
+    case "delta":
+      if (last && last.kind === action.itemKind && last.streaming) {
+        return [...items.slice(0, -1), { ...last, text: last.text + action.text }];
+      }
+      return [...items, { kind: action.itemKind, text: action.text, streaming: true }];
+    case "finalize":
+      if (last && last.kind === action.itemKind && last.streaming) {
+        return [...items.slice(0, -1), { ...last, text: action.text, streaming: false }];
+      }
+      return [...items, { kind: action.itemKind, text: action.text }];
+    case "result":
+      return [...items, { kind: "result", job: action.job }];
+  }
 }
 
 export function Chat() {
@@ -37,7 +61,7 @@ export function Chat() {
   useEffect(() => {
     if (!profile || greetedConvos.current.has(convo)) return;
     greetedConvos.current.add(convo);
-    dispatch({ kind: "narrative", text: greetingText(profile) });
+    dispatch({ kind: "finalize", itemKind: "narrative", text: greetingText(profile) });
   }, [convo, profile]);
 
   async function send(e: React.FormEvent) {
@@ -54,22 +78,29 @@ export function Chat() {
     try {
       await streamChat({ message, conversation_id: convo }, (ev: ChatEvent) => {
         if (ev.type === "status") setStatusText(ev.text);
-        else if (ev.type === "clarify") {
+        else if (ev.type === "clarify_delta") {
           gotClarify.current = true;
-          dispatch({ kind: "clarify", text: ev.question });
+          dispatch({ kind: "delta", itemKind: "clarify", text: ev.text });
+        } else if (ev.type === "clarify") {
+          gotClarify.current = true;
+          dispatch({ kind: "finalize", itemKind: "clarify", text: ev.question });
+        } else if (ev.type === "narrative_delta") {
+          gotNarrative.current = true;
+          dispatch({ kind: "delta", itemKind: "narrative", text: ev.text });
         } else if (ev.type === "narrative") {
           gotNarrative.current = true;
-          dispatch({ kind: "narrative", text: ev.text });
+          dispatch({ kind: "finalize", itemKind: "narrative", text: ev.text });
         } else if (ev.type === "result") dispatch({ kind: "result", job: ev.job });
         else if (ev.type === "done" && !gotNarrative.current && !gotClarify.current) {
           dispatch({
-            kind: "narrative",
+            kind: "finalize",
+            itemKind: "narrative",
             text: `Found ${ev.count} role${ev.count === 1 ? "" : "s"}.`,
           });
         }
       }, abort.current.signal);
     } catch {
-      dispatch({ kind: "narrative", text: "Something went wrong. Try again." });
+      dispatch({ kind: "finalize", itemKind: "narrative", text: "Something went wrong. Try again." });
     } finally {
       setBusy(false);
       setStatusText(null);

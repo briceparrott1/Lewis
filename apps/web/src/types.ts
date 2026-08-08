@@ -27,7 +27,9 @@ export interface SavedJob extends RankedJob {
 
 export type ChatEvent =
   | { type: "status"; text: string }
+  | { type: "clarify_delta"; text: string }
   | { type: "clarify"; question: string }
+  | { type: "narrative_delta"; text: string }
   | { type: "narrative"; text: string }
   | { type: "result"; job: RankedJob }
   | { type: "done"; count: number };

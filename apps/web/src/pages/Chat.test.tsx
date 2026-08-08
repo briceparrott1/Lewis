@@ -181,4 +181,63 @@ describe("Chat", () => {
     ).toBeInTheDocument();
     expect(streamChat).not.toHaveBeenCalled();
   });
+
+  it("renders narrative text incrementally as delta events arrive, then reconciles to the final text", async () => {
+    vi.mocked(streamChat).mockImplementation(
+      async (_body: unknown, onEvent: (e: ChatEvent) => void) => {
+        onEvent({ type: "narrative_delta", text: "Hey " });
+        onEvent({ type: "narrative_delta", text: "Brice, " });
+        onEvent({ type: "narrative", text: "Hey Brice, I found 1 great match." });
+        onEvent({
+          type: "result",
+          job: {
+            source: "ashby", company: "Ramp", title: "FDE", location: "SF",
+            url: "https://x", score: 90, reason: "great",
+          },
+        });
+        onEvent({ type: "done", count: 1 });
+      },
+    );
+    renderChat();
+    await sendMessage("FDE in SF");
+    expect(
+      await screen.findByText("Hey Brice, I found 1 great match."),
+    ).toBeInTheDocument();
+  });
+
+  it("hides the spinner/ticker as soon as the first narrative delta arrives", async () => {
+    let resolveStream!: () => void;
+    vi.mocked(streamChat).mockImplementation(
+      (_body: unknown, onEvent: (e: ChatEvent) => void) =>
+        new Promise<void>((resolve) => {
+          onEvent({ type: "narrative_delta", text: "Hey, " });
+          resolveStream = resolve;
+        }),
+    );
+    renderChat();
+    await sendMessage("FDE in SF");
+    // Matcher has no trailing space: testing-library's default normalizer
+    // trims the DOM node's text before comparing, but does not trim the
+    // matcher string itself, so "Hey, " (with the trailing space the delta
+    // chunk actually contains) would never match the trimmed "Hey," text.
+    expect(await screen.findByText("Hey,")).toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: /loading/i })).not.toBeInTheDocument();
+    await act(async () => {
+      resolveStream();
+    });
+  });
+
+  it("streams a clarify reply incrementally", async () => {
+    vi.mocked(streamChat).mockImplementation(
+      async (_body: unknown, onEvent: (e: ChatEvent) => void) => {
+        onEvent({ type: "clarify_delta", text: "Hey! " });
+        onEvent({ type: "clarify_delta", text: "Where are you looking?" });
+        onEvent({ type: "clarify", question: "Hey! Where are you looking?" });
+        onEvent({ type: "done", count: 0 });
+      },
+    );
+    renderChat();
+    await sendMessage("hi");
+    expect(await screen.findByText("Hey! Where are you looking?")).toBeInTheDocument();
+  });
 });
