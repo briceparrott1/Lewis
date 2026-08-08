@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     anthropic_api_key: str = ""
     agent_model: str = "claude-haiku-4-5-20251001"
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_host: str = "https://cloud.langfuse.com"
 
 
 @lru_cache
