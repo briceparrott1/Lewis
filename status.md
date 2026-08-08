@@ -2,6 +2,18 @@
 
 **As of 2026-08-07** | Repo: https://github.com/briceparrott1/Lewis | Branch: `main`
 
+## 🔵 Open PR — Needs Your Merge Decision
+
+**[PR #1](https://github.com/briceparrott1/Lewis/pull/1) — Optional Langfuse tracing for agent chat sessions**, branch `worktree-langfuse-observability`, worktree at `.claude/worktrees/langfuse-observability`.
+
+Lets a developer retrospectively inspect a chat session (node sequence + per-call prompt/completion/token detail) via Langfuse. True no-op when unconfigured; fails open if Langfuse itself errors once configured. Built via brainstorm → spec (`docs/superpowers/specs/2026-08-07-langfuse-observability-design.md`) → plan (`docs/superpowers/plans/2026-08-07-langfuse-observability.md`) → subagent-driven implementation → final whole-branch review, which caught and fixed two real SDK-version bugs (implementation targeted Langfuse v3 API; installed version was v4.14.3).
+
+73/73 backend tests passing, ruff/black clean. Deliberately gated here: merging to `main` and any manual smoke test with real Langfuse Cloud keys are left for you.
+
+**To use it:** create a Langfuse Cloud account, set `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` in `.env` (already scaffolded in `.env.example`) — you mentioned you'd already added these to the main checkout's `.env`, which doesn't carry into the PR's worktree automatically.
+
+---
+
 ## ✅ Complete & Verified
 
 ### All 3 Implementation Plans Done
