@@ -15,11 +15,13 @@ interface AuthValue {
   user: User | null;
   loading: boolean;
   refresh: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 const Ctx = createContext<AuthValue>({
   user: null,
   loading: true,
   refresh: async () => {},
+  logout: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -31,6 +33,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: data ?? null,
         loading: isLoading,
         refresh: () => qc.invalidateQueries({ queryKey: ["me"] }),
+        logout: async () => {
+          await api.post("/auth/logout");
+          await qc.invalidateQueries({ queryKey: ["me"] });
+        },
       }}
     >
       {children}
