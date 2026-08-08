@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from typing import Protocol
 
 from anthropic import AsyncAnthropic
@@ -11,7 +12,7 @@ class LLM(Protocol):
         self, system: str, user: str, tool_name: str, schema: dict
     ) -> dict: ...
 
-    async def complete(self, system: str, user: str) -> str: ...
+    def stream(self, system: str, user: str) -> AsyncIterator[str]: ...
 
 
 def _usage_details(resp) -> dict | None:
@@ -58,20 +59,19 @@ class AnthropicLLM:
             generation.update(output=result, usage_details=_usage_details(resp))
             return result
 
-    async def complete(self, system: str, user: str) -> str:
+    async def stream(self, system: str, user: str) -> AsyncIterator[str]:
         with observe_generation(
-            "complete", self._model, {"system": system, "user": user}
+            "stream", self._model, {"system": system, "user": user}
         ) as generation:
-            resp = await self._client.messages.create(
+            full_text = ""
+            async with self._client.messages.stream(
                 model=self._model,
                 max_tokens=1024,
                 system=system,
                 messages=[{"role": "user", "content": user}],
-            )
-            result = ""
-            for block in resp.content:
-                if block.type == "text":
-                    result = block.text
-                    break
-            generation.update(output=result, usage_details=_usage_details(resp))
-            return result
+            ) as stream:
+                async for chunk in stream.text_stream:
+                    full_text += chunk
+                    yield chunk
+                final = await stream.get_final_message()
+            generation.update(output=full_text, usage_details=_usage_details(final))

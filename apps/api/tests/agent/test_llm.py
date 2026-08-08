@@ -3,41 +3,57 @@ import pytest
 from lewis_api.agent.llm import AnthropicLLM
 
 
-class _Resp:
-    def __init__(self, content):
-        self.content = content
+class _FinalMessage:
+    def __init__(self, usage=None):
+        self.usage = usage
 
 
-class _TextBlock:
-    def __init__(self, text):
-        self.type = "text"
-        self.text = text
+class _FakeMessageStream:
+    def __init__(self, chunks, final):
+        self._chunks = chunks
+        self._final = final
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def _gen(self):
+        for c in self._chunks:
+            yield c
+
+    @property
+    def text_stream(self):
+        return self._gen()
+
+    async def get_final_message(self):
+        return self._final
 
 
 class _FakeMessages:
-    def __init__(self, content):
-        self._content = content
+    def __init__(self, chunks, final):
+        self._chunks = chunks
+        self._final = final
 
-    async def create(self, **kwargs):
-        return _Resp(self._content)
+    def stream(self, **kwargs):
+        return _FakeMessageStream(self._chunks, self._final)
 
 
 class _FakeClient:
-    def __init__(self, content):
-        self.messages = _FakeMessages(content)
+    def __init__(self, chunks, final=None):
+        self.messages = _FakeMessages(chunks, final or _FinalMessage())
 
 
 @pytest.mark.asyncio
-async def test_complete_returns_text_block_content():
-    llm = AnthropicLLM(
-        client=_FakeClient([_TextBlock("hello there")]), model="fake-model"
-    )
-    out = await llm.complete(system="s", user="u")
-    assert out == "hello there"
+async def test_stream_yields_chunks_in_order():
+    llm = AnthropicLLM(client=_FakeClient(["Hel", "lo ", "there"]), model="fake-model")
+    chunks = [c async for c in llm.stream(system="s", user="u")]
+    assert chunks == ["Hel", "lo ", "there"]
 
 
 @pytest.mark.asyncio
-async def test_complete_returns_empty_string_when_no_text_block():
+async def test_stream_yields_nothing_for_empty_response():
     llm = AnthropicLLM(client=_FakeClient([]), model="fake-model")
-    out = await llm.complete(system="s", user="u")
-    assert out == ""
+    chunks = [c async for c in llm.stream(system="s", user="u")]
+    assert chunks == []
