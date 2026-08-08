@@ -4,25 +4,38 @@
 
 ## 🔵 Open PR — Needs Your Merge Decision
 
-**[PR #2](https://github.com/briceparrott1/Lewis/pull/2) — UI/UX overhaul**, branch `worktree-ui-ux-overhaul`, worktree at `.claude/worktrees/ui-ux-overhaul`.
+**Job quality: ranking fixes + seed-list scaling**, branch `worktree-job-quality-ranking`, worktree at `.claude/worktrees/job-quality-ranking`.
 
-Four phases, each independently shippable, built via brainstorm → spec (`docs/superpowers/specs/2026-08-07-ui-ux-overhaul-design.md`) → plan (`docs/superpowers/plans/2026-08-07-ui-ux-overhaul.md`, 15 tasks) → subagent-driven implementation → per-task reviews → final whole-branch review (opus) → one fix wave → clean:
+Built via brainstorm (paused pending the UI/UX overhaul merge, then resumed with full autonomy per your instruction) → spec (`docs/superpowers/specs/2026-08-07-job-quality-wants-to-see-design.md`) → plan (`docs/superpowers/plans/2026-08-08-job-quality-ranking.md`, 5 tasks) → subagent-driven implementation → per-task reviews → final whole-branch review (opus) → one fix wave → clean:
 
-1. **Navigation** — shared `AppLayout` header (Chat/Saved/Profile nav + logout), wired into routing via a layout route. Previously there was no way to navigate between authenticated pages at all.
-2. **Agent behavior & persistent preferences** — `UserProfile.structured_prefs` (a DB column that existed but was never wired up) is now read into the LangGraph agent every turn and written back after, so preferences survive "New chat," reload, and restart. The hardcoded clarify text is replaced by an LLM-generated reply that acknowledges what the user actually said (tested live: "hey there, how's it going?" → "Hey! Doing great, thanks for asking! So I see you're looking for senior-level Forward Deployed Engineer..."). Chat opens with a template-rendered (no LLM call) greeting, personalized with name and — for returning users — a summary of prior preferences.
-3. **Visual theme** — Tailwind v4 `@theme` design tokens (chat-first minimal: indigo accent, soft shadows, rounded bubbles) applied consistently across every page.
-4. **Real token streaming** — narrative and clarify replies now stream token-by-token over SSE (`narrative_delta`/`clarify_delta` events) instead of appearing all at once, with the existing terminal events serving as the authoritative reconciliation point if a delta drops in transit.
+1. **Fetch throughput** — `boards.py` concurrency raised 15→40; rate-limited (429) boards now log distinctly instead of looking identical to "0 matching jobs."
+2. **Ranking bug fix** — `rank_jobs` used to silently default any candidate the LLM omitted from its response into results with `score=0, reason=""`; those could reach a user's final batch with an empty reason if the eligible pool was thin. Now dropped at the source.
+3. **Prefilter robustness** — role-keyword matching now normalizes hyphens/whitespace (`"full stack"` now matches `"Full-Stack Engineer"` and vice versa) — this filter is a hard, unrecoverable gate, so a phrasing mismatch used to silently exclude good jobs.
+4. **Industry diversity cap** — extends the existing company/seniority-tier caps (from the prior seniority-diversity PR) with a third axis: a static per-company `industry` tag (fixed 17-value taxonomy, not a live LLM guess) and a matching cap in `select_results.py`, generalizing "diversity" beyond company-only clustering. `industry="unknown"` stays uncapped, same pattern as seniority's "unknown" handling.
+5. **Seed list scaled 106 → 252** — live-validated (real HTTP 200 + non-empty job list) against actual Greenhouse/Ashby endpoints, every entry industry-tagged. Honest shortfall from the 300+ aspiration: many well-known companies (Netflix, Shopify, HubSpot, CrowdStrike, HashiCorp, etc.) confirmed not to be on Greenhouse/Ashby at all (404s), not a scripting bug — see `apps/api/scripts/validate_seed_companies.py` (rerunnable) and its report in the PR.
 
-**Verification:** 82/82 backend tests, 37/37 frontend tests, ruff/black/typecheck/build all clean. Final whole-branch review caught two Important integration-level bugs (invisible to any single task's review) that are now fixed: an empty-but-successful LLM stream could leave a blank chat bubble with no fallback text; the "New chat" greeting read a stale cached profile and never reflected preferences learned earlier in the same session. Both fixed and re-verified. Manually walked through the live app in-browser end to end (signup → onboarding → chat greeting → smalltalk ack → real Greenhouse/Ashby search + Haiku ranking + streaming narrative → New chat showing the persisted-preference greeting → Saved page) — everything works as designed.
+**Verification:** 91/91 backend tests, ruff/black clean. Final whole-branch review caught one integration-level risk invisible to any single task's review: scaling the company pool 2.4x without also scaling `prefilter.py`'s candidate cap (still 50) meant the ranker was effectively only ever seeing an alphabetically-clustered slice of the pool (companies A–C), undercutting both the seed-list expansion and the new industry-diversity cap. Fixed: cap raised to 150, plus the `respond` funnel log now includes candidate count for future diagnosability.
 
-A handful of Minor findings were deliberately deferred rather than fixed (see `.superpowers/sdd/2026-08-07-ui-ux-overhaul/progress.md` in that worktree for the full ledger before it's deleted): a couple of no-op lint-suppression comments, missing `aria-label`/`<main>` landmark on the header, a narrow concurrent-first-chat race on profile-row creation, and two test-coverage gaps (delta-accumulation isn't independently tested; the clarify_delta path doesn't hide the spinner as fast as narrative_delta does). None block merge.
+**Deliberately deferred (not in this PR — see design doc's "Explicitly deferred" section and the final review's recommendations)**:
+- Prefilter tie-break/backfill logic for thin diversity-capped batches (raising the cap is a mitigation, not a full fix — the underlying alphabetical-tie-break bias and the industry cap's lack of a backfill pass for thin survivor pools are real, named, and better as a focused follow-up with its own tests).
+- Full qualification/desire preference field taxonomy from the original brainstorm (beyond role/location/seniority).
+- Hard/soft preference ambiguity confirmation node.
+- Dedup resurfacing policy (does a shown-but-ignored job ever come back — currently: no, permanent exclusion via `served_keys`).
+
+**A handful of Minor findings were deliberately deferred** (see `.superpowers/sdd/2026-08-08-job-quality-ranking/progress.md` in that worktree for the full ledger before it's deleted): a dead defensive None-check in `boards.py`, missing branch-coverage for two logging paths, a naming-collision note between two same-named-but-different `_normalize()` helpers, YAML quoting-style drift on apostrophe company names, and two defensible-but-arguable industry tags. None block merge.
 
 ---
 
 ## ✅ Previously Complete & Verified
 
+### UI/UX Overhaul (PR #2 — merged)
+Navigation (shared `AppLayout`), agent behavior & persistent preferences (`structured_prefs` now survives reload/new-chat), visual theme (Tailwind v4 tokens), real token streaming. Merged into `main`.
+
+### Job Ranking: Seniority + Company Diversity (merged, pre-dates this session)
+Seniority hard-exclusion + company-diversity cap in `select_results.py`/`seniority.py`. This PR's Task 4 extends `select_results.py` further (industry cap) rather than duplicating it.
+
 ### Langfuse Observability (PR #1 — merged)
-Optional retrospective tracing for agent chat sessions (node sequence + per-call prompt/completion/token detail). True no-op when unconfigured; fails open if Langfuse itself errors. Merged into `main`.
+Optional retrospective tracing for agent chat sessions. True no-op when unconfigured.
 
 ### All 3 Original Implementation Plans Done
 - **Plan 1 — Backend Foundation** (auth, profile, jobs, DB, migrations) ✓
@@ -31,21 +44,14 @@ Optional retrospective tracing for agent chat sessions (node sequence + per-call
 
 ### API Budget Status
 - Started with: $20
-- Spent through this session (builds, diagnostics, live smoke tests, the UI/UX overhaul's manual browser walkthrough): still well under $1 total (Haiku throughout)
-- Remaining: ~$19 (rough — not precisely tracked this session)
+- Spent through this session (diagnostics, live company-board validation calls, Haiku throughout): not precisely tracked, expected well under $2 total
+- Remaining: rough estimate ~$18-19 / $20
 
 ---
 
-## 🔴 Known Gaps (Blockers) — unrelated to the UI/UX overhaul, still open
+## 🔴 Known Gaps (Blockers)
 
-### 1. Seed List Too Small (High Priority — UX Impact)
-**Problem**: Seed has only a handful of companies (GitLab, Ramp, Cloudflare, Coinbase seen in this session's live test). Specific/niche queries outside tech-company hiring return 0 results.
-
-**Fix**: Expand to 100+ tech companies across industries, validate against live Greenhouse/Ashby APIs.
-
-**Effort**: ~1–2 hours (research + batch-validate with Haiku).
-
-### 2. Deployment Blockers (Required Before Railway)
+### 1. Deployment Blockers (Required Before Railway)
 - [ ] **Dockerfile `$PORT`** — hardcoded 8000, Railway injects `$PORT` env var
 - [ ] **No migrations on startup** — prod Postgres empty, every request 500s
 - [ ] **`DATABASE_URL` driver mismatch** — Railway gives `postgresql://`, async stack needs `postgresql+asyncpg://`
@@ -59,9 +65,10 @@ Optional retrospective tracing for agent chat sessions (node sequence + per-call
 ## 🟡 Optional (Pre-Public Launch)
 
 - Rate-limit `/api/chat` (budget protection; per-user daily cap)
-- Switch checkpointer from `MemorySaver` (in-memory) to Postgres (persistent, multi-instance) — note: chat-turn `clarified_once` state is still in-memory-only even after this session's persistence work; only `structured_prefs` was made durable, by design (see spec)
-- Seed-list auto-fetch from Greenhouse/Ashby (vs. manual curation)
+- Switch checkpointer from `MemorySaver` (in-memory) to Postgres (persistent, multi-instance); pair with a dedicated jobs DB + cron-worker refresh (would also let seed-list growth stop being throughput-bound on live per-turn fetches — explicitly deferred until then, see design doc)
+- Prefilter tie-break/backfill follow-up (see above)
 - A dedicated preferences/settings page (explicitly out of scope for the UI/UX overhaul — conversational-only was the deliberate design choice)
+- Full preference field taxonomy + hard/soft ambiguity confirmation (see design doc — needs its own scoped brainstorm)
 
 ---
 
@@ -70,12 +77,13 @@ Optional retrospective tracing for agent chat sessions (node sequence + per-call
 ### In a Fresh Context
 1. Read this file
 2. Check memory files in `/Users/briceparrott/.claude/projects/-Users-briceparrott-coding-projects-Lewis/memory/`
-3. [PR #2](https://github.com/briceparrott1/Lewis/pull/2) is open and ready for review/merge — that decision is yours
-4. Once that's merged, next natural work is **Expand Seed List** — self-contained, directly fixes the 0-results UX gap
+3. This PR (job-quality-ranking) is open and ready for your review/merge decision
+4. Once merged, natural next work is either the deployment blockers, or the deferred prefilter tie-break/backfill follow-up
 
 ### If You Hit Issues
-- **Tests fail?** — Run `cd apps/api && uv run pytest -q` (auto-creates test DB) and `cd apps/web && pnpm test`.
+- **Tests fail?** — Run `cd apps/api && uv run pytest -q` (auto-creates test DB).
 - **Can't deploy?** — Dockerfile blockers (above) are the likely culprit.
+- **Seed list needs re-validation later** (dead tokens accumulate over time) — rerun `cd apps/api && uv run python scripts/validate_seed_companies.py`.
 
 ---
 
@@ -83,10 +91,11 @@ Optional retrospective tracing for agent chat sessions (node sequence + per-call
 
 | Metric | Value |
 |--------|-------|
-| **Backend tests** | 82/82 passing, ruff/black clean |
-| **Frontend tests** | 37/37 passing, typecheck clean, build succeeds |
-| **API budget remaining** | ~$19 / $20 |
-| **UI/UX overhaul** | 15/15 plan tasks complete, final review clean, ready for PR |
+| **Backend tests** | 91/91 passing, ruff/black clean |
+| **Seed companies** | 252 (live-validated, industry-tagged), up from 106 |
+| **Fetch concurrency** | 40 (was 15) |
+| **API budget remaining** | ~$18-19 / $20 (rough) |
+| **This PR** | 5/5 plan tasks + final review fix wave complete, ready for merge |
 
 ---
 
@@ -94,9 +103,10 @@ Optional retrospective tracing for agent chat sessions (node sequence + per-call
 
 - **Simplicity wins**: All code written for readability, not cleverness. Haiku is default LLM (cost-conscious).
 - **Memory persists**: Check `memory/` folder for [[lewis-project]] and [[simplicity-and-cost-preferences]] context.
-- **This session's UI/UX overhaul** used `superpowers:subagent-driven-development` throughout: a fresh implementer subagent per task, an independent reviewer per task, and a final opus-model whole-branch review before considering the branch done. The plan document originally numbered tasks "Task 1, Task 2, ..." restarting within each phase, which broke the SDD tooling's brief-extraction script (it matches on heading number only, with no notion of phase boundaries) — renumbered globally 1–15 early in execution, before any task was dispatched.
+- **This session's job-quality work**: brainstormed to a paused DRAFT spec pending the UI/UX overhaul; on "merge is in," given full autonomy ("proceed all the way from scoping to implementation without pausing, only pause before merging to main") — resumed the design (updating it with post-merge findings), wrote the plan, ran `superpowers:subagent-driven-development` through all 5 tasks plus a final whole-branch review and fix wave, entirely without interim check-ins, per that instruction.
+- **A sandbox boundary was hit**: this worktree-isolated session could not run git operations against the shared main checkout (`/Users/briceparrott/coding/projects/Lewis`) — by design. A stale, superseded draft of the design spec and an uncommitted `status.md` edit from earlier in the session were left behind there, harmlessly (never committed). Safe to `git checkout -- status.md` and delete the stray spec file in the main checkout if you want it clean, or just ignore it.
 
 ---
 
-**Last updated**: 2026-08-08
-**Ready for**: Your review and merge decision on [PR #2](https://github.com/briceparrott1/Lewis/pull/2).
+**Last updated**: 2026-08-08 (this session)
+**Ready for**: Your review and merge decision on the job-quality-ranking PR.
