@@ -84,33 +84,46 @@ export function Chat() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-3 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Find roles</h1>
-        <button className="text-sm text-gray-600" onClick={newChat}>New chat</button>
+        <h1 className="text-xl font-semibold text-fg">Find roles</h1>
+        <button className="text-sm text-muted hover:text-fg" onClick={newChat}>New chat</button>
       </div>
       <div className="flex flex-col gap-3">
         {items.map((it, i) => {
           if (it.kind === "user")
-            return <div key={i} className="self-end rounded bg-black px-3 py-2 text-white">{it.text}</div>;
+            return (
+              <div key={i} className="self-end rounded-bubble bg-accent px-4 py-2 text-accent-foreground">
+                {it.text}
+              </div>
+            );
           if (it.kind === "clarify")
-            return <div key={i} className="rounded bg-gray-100 px-3 py-2">{it.text}</div>;
+            return (
+              <div key={i} className="rounded-bubble bg-surface px-4 py-2 text-fg shadow-soft">
+                {it.text}
+              </div>
+            );
           if (it.kind === "narrative")
-            return <p key={i} className="rounded bg-gray-50 px-3 py-3 leading-relaxed">{it.text}</p>;
+            return (
+              <p key={i} className="rounded-bubble bg-surface px-4 py-3 leading-relaxed text-fg shadow-soft">
+                {it.text}
+              </p>
+            );
           return (
             <CompactJobRow key={i} job={it.job} busy={save.isPending}
               onSave={() => save.mutate(it.job)} />
           );
         })}
         {busy && !gotNarrative.current && (
-          <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="flex items-center gap-2 text-sm text-muted">
             <Spinner />
             <span>{tickerText}</span>
           </div>
         )}
       </div>
       <form onSubmit={send} className="sticky bottom-4 mt-4 flex gap-2">
-        <input className="flex-1 rounded border p-2" placeholder="e.g. new grad FDE roles in SF"
+        <input className="flex-1 rounded-lg border border-border bg-surface p-2 text-fg"
+          placeholder="e.g. new grad FDE roles in SF"
           value={input} onChange={(e) => setInput(e.target.value)} disabled={busy} />
-        <button className="rounded bg-black px-4 text-white" disabled={busy}>Send</button>
+        <button className="rounded-lg bg-accent px-4 text-accent-foreground" disabled={busy}>Send</button>
       </form>
     </div>
   );
