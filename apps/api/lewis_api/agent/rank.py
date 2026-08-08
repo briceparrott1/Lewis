@@ -76,7 +76,10 @@ async def rank_jobs(
     by_id = {r["external_id"]: r for r in result.get("rankings", [])}
     ranked: list[RankedJob] = []
     for c in candidates:
-        r = by_id.get(c.get("external_id"), {})
+        ext_id = c.get("external_id")
+        if ext_id not in by_id:
+            continue  # LLM never addressed this candidate — don't show it
+        r = by_id[ext_id]
         seniority = r.get("seniority", "unknown")
         if seniority not in _VALID_SENIORITY:
             seniority = "unknown"
