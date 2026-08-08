@@ -1,111 +1,261 @@
 # Seed list of companies to scan for jobs.
-# Each entry: {company, source, board_token} where source is "greenhouse" or "ashby".
-# All tokens below were live-verified (HTTP 200 + non-empty job list) against:
+# Each entry: {company, source, board_token, industry} where source is
+# "greenhouse" or "ashby", and industry is one of the taxonomy values used by
+# lewis_api.agent.sources.seed.SeedEntry (see select_results.py diversity cap).
+# All tokens below were live-verified (HTTP 200 + non-empty job list) via
+# scripts/validate_seed_companies.py against:
 #   greenhouse: https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs
 #   ashby:      https://api.ashbyhq.com/posting-api/job-board/{board_token}
-- {company: GitLab, source: greenhouse, board_token: gitlab}
-- {company: Ramp, source: ashby, board_token: ramp}
-- {company: Abnormal Security, source: greenhouse, board_token: abnormalsecurity}
-- {company: Affirm, source: greenhouse, board_token: affirm}
-- {company: Airbnb, source: greenhouse, board_token: airbnb}
-- {company: Airtable, source: greenhouse, board_token: airtable}
-- {company: Alloy, source: greenhouse, board_token: alloy}
-- {company: Amplitude, source: greenhouse, board_token: amplitude}
-- {company: Anthropic, source: greenhouse, board_token: anthropic}
-- {company: Asana, source: greenhouse, board_token: asana}
-- {company: Attentive, source: greenhouse, board_token: attentive}
-- {company: Benchling, source: ashby, board_token: benchling}
-- {company: Betterment, source: greenhouse, board_token: betterment}
-- {company: Blend, source: greenhouse, board_token: blend}
-- {company: Branch, source: greenhouse, board_token: branchmetrics}
-- {company: Braze, source: greenhouse, board_token: braze}
-- {company: Brex, source: greenhouse, board_token: brex}
-- {company: Brightwheel, source: ashby, board_token: brightwheel}
-- {company: Carta, source: greenhouse, board_token: carta}
-- {company: Checkr, source: greenhouse, board_token: checkr}
-- {company: Chime, source: greenhouse, board_token: chime}
-- {company: CircleCI, source: greenhouse, board_token: circleci}
-- {company: ClassPass, source: greenhouse, board_token: classpass}
-- {company: Clever, source: greenhouse, board_token: clever}
-- {company: ClickHouse, source: greenhouse, board_token: clickhouse}
-- {company: Cloudflare, source: greenhouse, board_token: cloudflare}
-- {company: Cockroach Labs, source: greenhouse, board_token: cockroachlabs}
-- {company: Coinbase, source: greenhouse, board_token: coinbase}
-- {company: Collective Health, source: greenhouse, board_token: collectivehealth}
-- {company: Column, source: ashby, board_token: column}
-- {company: Coursera, source: greenhouse, board_token: coursera}
-- {company: Cribl, source: greenhouse, board_token: cribl}
-- {company: Current, source: greenhouse, board_token: current}
-- {company: Databricks, source: greenhouse, board_token: databricks}
-- {company: Datadog, source: greenhouse, board_token: datadog}
-- {company: Diligent, source: greenhouse, board_token: diligent}
-- {company: Discord, source: greenhouse, board_token: discord}
-- {company: Dropbox, source: greenhouse, board_token: dropbox}
-- {company: Elastic, source: greenhouse, board_token: elastic}
-- {company: Faire, source: greenhouse, board_token: faire}
-- {company: Figma, source: greenhouse, board_token: figma}
-- {company: Fivetran, source: greenhouse, board_token: fivetran}
-- {company: Flatiron Health, source: greenhouse, board_token: flatironhealth}
-- {company: Flexport, source: greenhouse, board_token: flexport}
-- {company: Gemini, source: greenhouse, board_token: gemini}
-- {company: Glossier, source: greenhouse, board_token: glossier}
-- {company: Gusto, source: greenhouse, board_token: gusto}
-- {company: HackerRank, source: greenhouse, board_token: hackerrank}
-- {company: Handshake, source: ashby, board_token: handshake}
-- {company: "Harry's", source: greenhouse, board_token: harrys}
-- {company: Hex, source: ashby, board_token: hex}
-- {company: Instabase, source: greenhouse, board_token: instabase}
-- {company: Instacart, source: greenhouse, board_token: instacart}
-- {company: Intercom, source: greenhouse, board_token: intercom}
-- {company: Justworks, source: greenhouse, board_token: justworks}
-- {company: LaunchDarkly, source: greenhouse, board_token: launchdarkly}
-- {company: Lattice, source: greenhouse, board_token: lattice}
-- {company: Linear, source: ashby, board_token: linear}
-- {company: Lyft, source: greenhouse, board_token: lyft}
-- {company: Marqeta, source: greenhouse, board_token: marqeta}
-- {company: Material Security, source: ashby, board_token: materialsecurity}
-- {company: Mercor, source: ashby, board_token: mercor}
-- {company: Mixpanel, source: greenhouse, board_token: mixpanel}
-- {company: Modern Treasury, source: ashby, board_token: moderntreasury}
-- {company: MongoDB, source: greenhouse, board_token: mongodb}
-- {company: Narvar, source: greenhouse, board_token: narvar}
-- {company: Neo4j, source: greenhouse, board_token: neo4j}
-- {company: New Relic, source: greenhouse, board_token: newrelic}
-- {company: Newsela, source: greenhouse, board_token: newsela}
-- {company: Nextdoor, source: greenhouse, board_token: nextdoor}
-- {company: Notion, source: ashby, board_token: notion}
-- {company: OpenAI, source: ashby, board_token: openai}
-- {company: Okta, source: greenhouse, board_token: okta}
-- {company: Oscar Health, source: greenhouse, board_token: oscar}
-- {company: PagerDuty, source: greenhouse, board_token: pagerduty}
-- {company: Peloton, source: greenhouse, board_token: peloton}
-- {company: Perplexity, source: ashby, board_token: perplexity}
-- {company: Persona, source: ashby, board_token: persona}
-- {company: Pinterest, source: greenhouse, board_token: pinterest}
-- {company: PlanetScale, source: greenhouse, board_token: planetscale}
-- {company: Postman, source: greenhouse, board_token: postman}
-- {company: Reddit, source: greenhouse, board_token: reddit}
-- {company: Replit, source: ashby, board_token: replit}
-- {company: Rho, source: ashby, board_token: rho}
-- {company: Ripple, source: greenhouse, board_token: ripple}
-- {company: Robinhood, source: greenhouse, board_token: robinhood}
-- {company: Samsara, source: greenhouse, board_token: samsara}
-- {company: Scale AI, source: greenhouse, board_token: scaleai}
-- {company: Semgrep, source: ashby, board_token: semgrep}
-- {company: Sentry, source: ashby, board_token: sentry}
-- {company: SoFi, source: greenhouse, board_token: sofi}
-- {company: Squarespace, source: greenhouse, board_token: squarespace}
-- {company: Stitch Fix, source: greenhouse, board_token: stitchfix}
-- {company: Stripe, source: greenhouse, board_token: stripe}
-- {company: Twilio, source: greenhouse, board_token: twilio}
-- {company: Upstart, source: greenhouse, board_token: upstart}
-- {company: Vanta, source: ashby, board_token: vanta}
-- {company: Verkada, source: greenhouse, board_token: verkada}
-- {company: VTS, source: greenhouse, board_token: vts}
-- {company: Watershed, source: ashby, board_token: watershed}
-- {company: Webflow, source: greenhouse, board_token: webflow}
-- {company: Wiz, source: greenhouse, board_token: wizinc}
-- {company: Workato, source: greenhouse, board_token: workato}
-- {company: Zeta Global, source: greenhouse, board_token: zetaglobal}
-- {company: Zip, source: ashby, board_token: zip}
-- {company: ZocDoc, source: greenhouse, board_token: zocdoc}
+
+- {company: 1Password, source: ashby, board_token: 1password, industry: cybersecurity}
+- {company: 2K, source: greenhouse, board_token: 2k, industry: gaming}
+- {company: 2U, source: greenhouse, board_token: 2u, industry: edtech}
+- {company: Abnormal Security, source: greenhouse, board_token: abnormalsecurity, industry: cybersecurity}
+- {company: Affirm, source: greenhouse, board_token: affirm, industry: fintech}
+- {company: Airbnb, source: greenhouse, board_token: airbnb, industry: consumer}
+- {company: Airbyte, source: ashby, board_token: airbyte, industry: devtools}
+- {company: Airtable, source: greenhouse, board_token: airtable, industry: enterprise_saas}
+- {company: Alloy, source: greenhouse, board_token: alloy, industry: fintech}
+- {company: Amplitude, source: greenhouse, board_token: amplitude, industry: enterprise_saas}
+- {company: Amwell, source: greenhouse, board_token: amwell, industry: healthtech}
+- {company: Angi, source: ashby, board_token: angi, industry: consumer}
+- {company: Antares, source: ashby, board_token: antares, industry: climate_energy}
+- {company: Anthropic, source: greenhouse, board_token: anthropic, industry: ai_ml}
+- {company: Anyscale, source: ashby, board_token: anyscale, industry: ai_ml}
+- {company: AppLovin, source: greenhouse, board_token: applovin, industry: gaming}
+- {company: Asana, source: greenhouse, board_token: asana, industry: enterprise_saas}
+- {company: Attentive, source: greenhouse, board_token: attentive, industry: enterprise_saas}
+- {company: Aurora Solar, source: ashby, board_token: aurorasolar, industry: climate_energy}
+- {company: Basecamp Research, source: ashby, board_token: basecamp-research, industry: biotech}
+- {company: Beam Therapeutics, source: greenhouse, board_token: beamtherapeutics, industry: biotech}
+- {company: Bedrock Robotics, source: ashby, board_token: bedrock-robotics, industry: hardware_robotics}
+- {company: Benchling, source: ashby, board_token: benchling, industry: biotech}
+- {company: Betterment, source: greenhouse, board_token: betterment, industry: fintech}
+- {company: Bird, source: greenhouse, board_token: bird, industry: hardware_robotics}
+- {company: Blend, source: greenhouse, board_token: blend, industry: fintech}
+- {company: Bloomreach, source: greenhouse, board_token: bloomreach, industry: ecommerce}
+- {company: Branch, source: greenhouse, board_token: branchmetrics, industry: devtools}
+- {company: Braze, source: greenhouse, board_token: braze, industry: enterprise_saas}
+- {company: Brex, source: greenhouse, board_token: brex, industry: fintech}
+- {company: Brightwheel, source: ashby, board_token: brightwheel, industry: edtech}
+- {company: Bringg, source: greenhouse, board_token: bringg, industry: logistics_supply_chain}
+- {company: Buildkite, source: greenhouse, board_token: buildkite, industry: devtools}
+- {company: Built Robotics, source: ashby, board_token: built-robotics, industry: hardware_robotics}
+- {company: Calendly, source: greenhouse, board_token: calendly, industry: enterprise_saas}
+- {company: Cameo, source: greenhouse, board_token: cameo, industry: consumer}
+- {company: Carta, source: greenhouse, board_token: carta, industry: fintech}
+- {company: Cedar, source: ashby, board_token: cedar, industry: healthtech}
+- {company: Cerebral, source: greenhouse, board_token: cerebral, industry: healthtech}
+- {company: ChargePoint, source: greenhouse, board_token: chargepoint, industry: climate_energy}
+- {company: Checkr, source: greenhouse, board_token: checkr, industry: enterprise_saas}
+- {company: Chime, source: greenhouse, board_token: chime, industry: fintech}
+- {company: CircleCI, source: greenhouse, board_token: circleci, industry: devtools}
+- {company: ClassDojo, source: ashby, board_token: classdojo, industry: edtech}
+- {company: ClassPass, source: greenhouse, board_token: classpass, industry: consumer}
+- {company: Clever, source: greenhouse, board_token: clever, industry: edtech}
+- {company: ClickHouse, source: greenhouse, board_token: clickhouse, industry: devtools}
+- {company: ClickUp, source: ashby, board_token: clickup, industry: enterprise_saas}
+- {company: Climatiq, source: ashby, board_token: climatiq, industry: climate_energy}
+- {company: Cloudflare, source: greenhouse, board_token: cloudflare, industry: cybersecurity}
+- {company: Clover Health, source: greenhouse, board_token: cloverhealth, industry: healthtech}
+- {company: Cockroach Labs, source: greenhouse, board_token: cockroachlabs, industry: devtools}
+- {company: Cohere, source: ashby, board_token: cohere, industry: ai_ml}
+- {company: Coinbase, source: greenhouse, board_token: coinbase, industry: fintech}
+- {company: Collective Health, source: greenhouse, board_token: collectivehealth, industry: healthtech}
+- {company: Column, source: ashby, board_token: column, industry: fintech}
+- {company: Compass, source: greenhouse, board_token: urbancompass, industry: real_estate}
+- {company: Coursera, source: greenhouse, board_token: coursera, industry: edtech}
+- {company: Cresta, source: greenhouse, board_token: cresta, industry: ai_ml}
+- {company: Cribl, source: greenhouse, board_token: cribl, industry: devtools}
+- {company: Current, source: greenhouse, board_token: current, industry: fintech}
+- {company: Databricks, source: greenhouse, board_token: databricks, industry: ai_ml}
+- {company: Datadog, source: greenhouse, board_token: datadog, industry: devtools}
+- {company: David Energy, source: ashby, board_token: davidenergy, industry: climate_energy}
+- {company: Descript, source: greenhouse, board_token: descript, industry: media_entertainment}
+- {company: Diligent, source: greenhouse, board_token: diligent, industry: enterprise_saas}
+- {company: Discord, source: greenhouse, board_token: discord, industry: consumer}
+- {company: Doximity, source: greenhouse, board_token: doximity, industry: healthtech}
+- {company: Drata, source: ashby, board_token: drata, industry: cybersecurity}
+- {company: Dropbox, source: greenhouse, board_token: dropbox, industry: enterprise_saas}
+- {company: Duolingo, source: greenhouse, board_token: duolingo, industry: edtech}
+- {company: Dyna Robotics, source: ashby, board_token: dyna-robotics, industry: hardware_robotics}
+- {company: Elastic, source: greenhouse, board_token: elastic, industry: devtools}
+- {company: ElevenLabs, source: ashby, board_token: elevenlabs, industry: ai_ml}
+- {company: EliseAI, source: ashby, board_token: eliseai, industry: real_estate}
+- {company: Entera, source: greenhouse, board_token: entera, industry: real_estate}
+- {company: Epic Games, source: greenhouse, board_token: epicgames, industry: gaming}
+- {company: Faire, source: greenhouse, board_token: faire, industry: ecommerce}
+- {company: Fandom, source: greenhouse, board_token: fandom, industry: media_entertainment}
+- {company: Figma, source: greenhouse, board_token: figma, industry: enterprise_saas}
+- {company: Figure AI, source: greenhouse, board_token: figure, industry: hardware_robotics}
+- {company: Fivetran, source: greenhouse, board_token: fivetran, industry: devtools}
+- {company: Flatiron Health, source: greenhouse, board_token: flatironhealth, industry: healthtech}
+- {company: Flexport, source: greenhouse, board_token: flexport, industry: logistics_supply_chain}
+- {company: Form Energy, source: ashby, board_token: formenergy, industry: climate_energy}
+- {company: Foundry Robotics, source: ashby, board_token: foundry-robotics, industry: hardware_robotics}
+- {company: FourKites, source: greenhouse, board_token: fourkites, industry: logistics_supply_chain}
+- {company: Freenome, source: greenhouse, board_token: freenome, industry: biotech}
+- {company: Gemini, source: greenhouse, board_token: gemini, industry: fintech}
+- {company: Generate Biomedicines, source: greenhouse, board_token: generatebiomedicines, industry: biotech}
+- {company: Genomics, source: ashby, board_token: genomics, industry: biotech}
+- {company: Ginkgo Bioworks, source: greenhouse, board_token: ginkgobioworks, industry: biotech}
+- {company: GitLab, source: greenhouse, board_token: gitlab, industry: devtools}
+- {company: Glossier, source: greenhouse, board_token: glossier, industry: ecommerce}
+- {company: Gorgias, source: ashby, board_token: gorgias, industry: ecommerce}
+- {company: Grafana Labs, source: greenhouse, board_token: grafanalabs, industry: devtools}
+- {company: Gravity Climate, source: ashby, board_token: GravityClimate, industry: climate_energy}
+- {company: Grover, source: greenhouse, board_token: grover, industry: logistics_supply_chain}
+- {company: Gusto, source: greenhouse, board_token: gusto, industry: fintech}
+- {company: HackerRank, source: greenhouse, board_token: hackerrank, industry: enterprise_saas}
+- {company: Handshake, source: ashby, board_token: handshake, industry: edtech}
+- {company: Harry's, source: greenhouse, board_token: harrys, industry: ecommerce}
+- {company: Harvey, source: ashby, board_token: harvey, industry: ai_ml}
+- {company: Headway, source: ashby, board_token: headway, industry: healthtech}
+- {company: Hex, source: ashby, board_token: hex, industry: devtools}
+- {company: Highnote, source: greenhouse, board_token: highnote, industry: fintech}
+- {company: Hightouch, source: greenhouse, board_token: hightouch, industry: devtools}
+- {company: HomeLight, source: greenhouse, board_token: homelight, industry: real_estate}
+- {company: Honeycomb, source: greenhouse, board_token: honeycomb, industry: devtools}
+- {company: Improbable, source: ashby, board_token: improbable, industry: gaming}
+- {company: Inflection AI, source: greenhouse, board_token: inflectionai, industry: ai_ml}
+- {company: Insitro, source: ashby, board_token: insitro, industry: biotech}
+- {company: Instabase, source: greenhouse, board_token: instabase, industry: ai_ml}
+- {company: Instacart, source: greenhouse, board_token: instacart, industry: ecommerce}
+- {company: Intercom, source: greenhouse, board_token: intercom, industry: enterprise_saas}
+- {company: IXL Learning, source: greenhouse, board_token: ixllearning, industry: edtech}
+- {company: JFrog, source: greenhouse, board_token: jfrog, industry: devtools}
+- {company: Justworks, source: greenhouse, board_token: justworks, industry: enterprise_saas}
+- {company: Khan Academy, source: greenhouse, board_token: khanacademy, industry: edtech}
+- {company: Kiavi, source: greenhouse, board_token: kiavi, industry: real_estate}
+- {company: Klaviyo, source: greenhouse, board_token: klaviyo, industry: ecommerce}
+- {company: KnowBe4, source: greenhouse, board_token: knowbe4, industry: cybersecurity}
+- {company: Lattice, source: greenhouse, board_token: lattice, industry: enterprise_saas}
+- {company: LaunchDarkly, source: greenhouse, board_token: launchdarkly, industry: devtools}
+- {company: Life360, source: greenhouse, board_token: life360, industry: consumer}
+- {company: Linear, source: ashby, board_token: linear, industry: devtools}
+- {company: Lyft, source: greenhouse, board_token: lyft, industry: consumer}
+- {company: Marqeta, source: greenhouse, board_token: marqeta, industry: fintech}
+- {company: Material Security, source: ashby, board_token: materialsecurity, industry: cybersecurity}
+- {company: Materialize, source: ashby, board_token: materialize, industry: devtools}
+- {company: Maven Clinic, source: greenhouse, board_token: mavenclinic, industry: healthtech}
+- {company: Melio, source: greenhouse, board_token: melio, industry: fintech}
+- {company: Mercor, source: ashby, board_token: mercor, industry: ai_ml}
+- {company: Mercury, source: greenhouse, board_token: mercury, industry: fintech}
+- {company: Miro, source: ashby, board_token: miro, industry: enterprise_saas}
+- {company: Mixpanel, source: greenhouse, board_token: mixpanel, industry: enterprise_saas}
+- {company: Modal, source: ashby, board_token: modal, industry: ai_ml}
+- {company: Modern Health, source: greenhouse, board_token: modernhealth, industry: healthtech}
+- {company: Modern Treasury, source: ashby, board_token: moderntreasury, industry: fintech}
+- {company: MongoDB, source: greenhouse, board_token: mongodb, industry: devtools}
+- {company: Motive, source: greenhouse, board_token: motive, industry: logistics_supply_chain}
+- {company: Mythical Games, source: greenhouse, board_token: mythicalgames, industry: gaming}
+- {company: Narvar, source: greenhouse, board_token: narvar, industry: logistics_supply_chain}
+- {company: Natera, source: greenhouse, board_token: natera, industry: biotech}
+- {company: Neo4j, source: greenhouse, board_token: neo4j, industry: devtools}
+- {company: NetEase Games, source: greenhouse, board_token: neteasegames, industry: gaming}
+- {company: Netlify, source: greenhouse, board_token: netlify, industry: devtools}
+- {company: Netskope, source: greenhouse, board_token: netskope, industry: cybersecurity}
+- {company: New Relic, source: greenhouse, board_token: newrelic, industry: devtools}
+- {company: Newsela, source: greenhouse, board_token: newsela, industry: edtech}
+- {company: Nextdoor, source: greenhouse, board_token: nextdoor, industry: consumer}
+- {company: Notion, source: ashby, board_token: notion, industry: enterprise_saas}
+- {company: Nuro, source: greenhouse, board_token: nuro, industry: hardware_robotics}
+- {company: OfferUp, source: greenhouse, board_token: offerup, industry: ecommerce}
+- {company: Okta, source: greenhouse, board_token: okta, industry: cybersecurity}
+- {company: Omada Health, source: greenhouse, board_token: omadahealth, industry: healthtech}
+- {company: OpenAI, source: ashby, board_token: openai, industry: ai_ml}
+- {company: Orca Security, source: greenhouse, board_token: orcasecurity, industry: cybersecurity}
+- {company: Orchard Robotics, source: ashby, board_token: orchard, industry: hardware_robotics}
+- {company: Oscar Health, source: greenhouse, board_token: oscar, industry: healthtech}
+- {company: Outschool, source: greenhouse, board_token: outschool, industry: edtech}
+- {company: Ownwell, source: greenhouse, board_token: ownwell, industry: real_estate}
+- {company: PagerDuty, source: greenhouse, board_token: pagerduty, industry: devtools}
+- {company: PandaDoc, source: greenhouse, board_token: pandadoc, industry: enterprise_saas}
+- {company: Patreon, source: ashby, board_token: patreon, industry: media_entertainment}
+- {company: Peloton, source: greenhouse, board_token: peloton, industry: consumer}
+- {company: Perplexity, source: ashby, board_token: perplexity, industry: ai_ml}
+- {company: Persona, source: ashby, board_token: persona, industry: cybersecurity}
+- {company: Physical Intelligence, source: ashby, board_token: physicalintelligence, industry: hardware_robotics}
+- {company: Ping Identity, source: greenhouse, board_token: pingidentity, industry: cybersecurity}
+- {company: Pinterest, source: greenhouse, board_token: pinterest, industry: consumer}
+- {company: Plaid, source: ashby, board_token: plaid, industry: fintech}
+- {company: PlanetScale, source: greenhouse, board_token: planetscale, industry: devtools}
+- {company: Poshmark, source: ashby, board_token: poshmark, industry: ecommerce}
+- {company: Postman, source: greenhouse, board_token: postman, industry: devtools}
+- {company: Postscript, source: greenhouse, board_token: postscript, industry: ecommerce}
+- {company: Prisma, source: greenhouse, board_token: prisma, industry: devtools}
+- {company: project44, source: greenhouse, board_token: project44, industry: logistics_supply_chain}
+- {company: Ramp, source: ashby, board_token: ramp, industry: fintech}
+- {company: Recharge, source: ashby, board_token: recharge, industry: ecommerce}
+- {company: Recursion Pharmaceuticals, source: greenhouse, board_token: recursionpharmaceuticals, industry: biotech}
+- {company: Reddit, source: greenhouse, board_token: reddit, industry: consumer}
+- {company: Redwood Materials, source: greenhouse, board_token: redwoodmaterials, industry: climate_energy}
+- {company: Render, source: ashby, board_token: render, industry: devtools}
+- {company: Replit, source: ashby, board_token: replit, industry: devtools}
+- {company: Rho, source: ashby, board_token: rho, industry: fintech}
+- {company: Riot Games, source: greenhouse, board_token: riotgames, industry: gaming}
+- {company: Ripple, source: greenhouse, board_token: ripple, industry: fintech}
+- {company: Robinhood, source: greenhouse, board_token: robinhood, industry: fintech}
+- {company: Roblox, source: greenhouse, board_token: roblox, industry: gaming}
+- {company: Rockstar Games, source: greenhouse, board_token: rockstargames, industry: gaming}
+- {company: Roku, source: greenhouse, board_token: roku, industry: media_entertainment}
+- {company: Roofstock, source: greenhouse, board_token: roofstock, industry: real_estate}
+- {company: SalesLoft, source: greenhouse, board_token: salesloft, industry: enterprise_saas}
+- {company: Samsara, source: greenhouse, board_token: samsara, industry: hardware_robotics}
+- {company: Scale AI, source: greenhouse, board_token: scaleai, industry: ai_ml}
+- {company: Scopely, source: greenhouse, board_token: scopely, industry: gaming}
+- {company: Second Dinner, source: ashby, board_token: seconddinner, industry: gaming}
+- {company: Secureframe, source: ashby, board_token: secureframe, industry: cybersecurity}
+- {company: Semgrep, source: ashby, board_token: semgrep, industry: cybersecurity}
+- {company: Sentry, source: ashby, board_token: sentry, industry: devtools}
+- {company: ShipBob, source: greenhouse, board_token: shipbobinc, industry: logistics_supply_chain}
+- {company: Sierra, source: ashby, board_token: sierra, industry: ai_ml}
+- {company: Sila Nanotechnologies, source: greenhouse, board_token: silananotechnologies, industry: climate_energy}
+- {company: Skydio, source: ashby, board_token: skydio, industry: hardware_robotics}
+- {company: SmartRent, source: greenhouse, board_token: smartrent, industry: real_estate}
+- {company: Smartsheet, source: greenhouse, board_token: smartsheet, industry: enterprise_saas}
+- {company: SoFi, source: greenhouse, board_token: sofi, industry: fintech}
+- {company: Span, source: ashby, board_token: span, industry: climate_energy}
+- {company: Squarespace, source: greenhouse, board_token: squarespace, industry: enterprise_saas}
+- {company: Stability AI, source: greenhouse, board_token: stabilityai, industry: ai_ml}
+- {company: Stellar Entertainment, source: ashby, board_token: stellarentertainment, industry: gaming}
+- {company: Stitch Fix, source: greenhouse, board_token: stitchfix, industry: ecommerce}
+- {company: StockX, source: greenhouse, board_token: stockx, industry: ecommerce}
+- {company: Strava, source: ashby, board_token: strava, industry: consumer}
+- {company: Stripe, source: greenhouse, board_token: stripe, industry: fintech}
+- {company: Substack, source: ashby, board_token: substack, industry: media_entertainment}
+- {company: Supabase, source: ashby, board_token: supabase, industry: devtools}
+- {company: Supercell, source: ashby, board_token: supercell, industry: gaming}
+- {company: Sword Health, source: greenhouse, board_token: swordhealth, industry: healthtech}
+- {company: Talkspace, source: greenhouse, board_token: talkspace, industry: healthtech}
+- {company: Tanium, source: greenhouse, board_token: tanium, industry: cybersecurity}
+- {company: Temporal, source: ashby, board_token: temporal, industry: devtools}
+- {company: Thumbtack, source: ashby, board_token: thumbtack, industry: consumer}
+- {company: Together AI, source: greenhouse, board_token: togetherai, industry: ai_ml}
+- {company: Tubi, source: greenhouse, board_token: tubitv, industry: media_entertainment}
+- {company: Twilio, source: greenhouse, board_token: twilio, industry: devtools}
+- {company: Twitch, source: greenhouse, board_token: twitch, industry: media_entertainment}
+- {company: Udemy, source: greenhouse, board_token: udemy, industry: edtech}
+- {company: Unit, source: ashby, board_token: unit, industry: fintech}
+- {company: Upstart, source: greenhouse, board_token: upstart, industry: fintech}
+- {company: Vanta, source: ashby, board_token: vanta, industry: cybersecurity}
+- {company: Variant Bio, source: greenhouse, board_token: variantbio, industry: biotech}
+- {company: Vercel, source: greenhouse, board_token: vercel, industry: devtools}
+- {company: Verkada, source: greenhouse, board_token: verkada, industry: hardware_robotics}
+- {company: Virta Health, source: ashby, board_token: virtahealth, industry: healthtech}
+- {company: Vox Media, source: greenhouse, board_token: voxmedia, industry: media_entertainment}
+- {company: VTS, source: greenhouse, board_token: vts, industry: real_estate}
+- {company: Watershed, source: ashby, board_token: watershed, industry: climate_energy}
+- {company: Waymo, source: greenhouse, board_token: waymo, industry: hardware_robotics}
+- {company: Webflow, source: greenhouse, board_token: webflow, industry: enterprise_saas}
+- {company: Weee!, source: greenhouse, board_token: weee, industry: logistics_supply_chain}
+- {company: Who Gives A Crap, source: greenhouse, board_token: whogivesacrap, industry: ecommerce}
+- {company: Whoop, source: ashby, board_token: whoop, industry: consumer}
+- {company: Wiz, source: greenhouse, board_token: wizinc, industry: cybersecurity}
+- {company: Wooga, source: greenhouse, board_token: wooga, industry: gaming}
+- {company: Workato, source: greenhouse, board_token: workato, industry: enterprise_saas}
+- {company: Yotpo, source: greenhouse, board_token: yotpo, industry: ecommerce}
+- {company: Zeta Global, source: greenhouse, board_token: zetaglobal, industry: enterprise_saas}
+- {company: Zip, source: ashby, board_token: zip, industry: enterprise_saas}
+- {company: ZocDoc, source: greenhouse, board_token: zocdoc, industry: healthtech}
+- {company: Zscaler, source: greenhouse, board_token: zscaler, industry: cybersecurity}
