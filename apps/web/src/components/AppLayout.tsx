@@ -11,18 +11,18 @@ export function AppLayout() {
   }
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    isActive ? "font-medium text-black" : "text-gray-600 hover:text-black";
+    isActive ? "font-medium text-accent" : "text-muted hover:text-fg";
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b px-6 py-3">
+    <div className="min-h-screen bg-page">
+      <header className="border-b border-border bg-surface px-6 py-3">
         <div className="mx-auto flex max-w-2xl items-center justify-between">
-          <NavLink to="/" className="font-semibold">Lewis</NavLink>
-          <nav className="flex items-center gap-4 text-sm">
+          <NavLink to="/" className="text-lg font-semibold text-fg">Lewis</NavLink>
+          <nav className="flex items-center gap-5 text-sm">
             <NavLink to="/" end className={linkClass}>Chat</NavLink>
             <NavLink to="/saved" className={linkClass}>Saved</NavLink>
             <NavLink to="/onboarding" className={linkClass}>Profile</NavLink>
-            <button type="button" onClick={handleLogout} className="text-gray-600 hover:text-black">
+            <button type="button" onClick={handleLogout} className="text-muted hover:text-fg">
               Logout
             </button>
           </nav>
