@@ -461,14 +461,14 @@ git commit -m "feat: wire AppLayout into routing, dedupe nav links"
 
 # Phase 2 — Agent behavior & persistent preferences
 
-## Task 1: `missing_fields` helper in `prefs.py`
+## Task 4: `missing_fields` helper in `prefs.py`
 
 **Files:**
 - Modify: `apps/api/lewis_api/agent/prefs.py`
 - Test: `apps/api/tests/agent/test_prefs.py`
 
 **Interfaces:**
-- Produces: `missing_fields(prefs: StructuredPrefs) -> list[str]`. Consumed by Task 2's `clarify.py`.
+- Produces: `missing_fields(prefs: StructuredPrefs) -> list[str]`. Consumed by Task 5's `clarify.py`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -529,15 +529,15 @@ git commit -m "feat: add missing_fields helper for clarify prompts"
 
 ---
 
-## Task 2: Natural clarify replies (`clarify.py`)
+## Task 5: Natural clarify replies (`clarify.py`)
 
 **Files:**
 - Create: `apps/api/lewis_api/agent/clarify.py`
 - Create: `apps/api/tests/agent/test_clarify.py`
 
 **Interfaces:**
-- Consumes: `missing_fields` (Task 1), `LLM.complete()` (existing).
-- Produces: `generate_clarify_reply(user_message: str, prefs: StructuredPrefs, llm: LLM) -> str`, `CLARIFY_TEXT: str` (fallback constant). Consumed by Task 3's `graph.py`. **Note:** this task's non-streaming version ships in Phase 2; Phase 4 Task 2 replaces it with a streaming variant — this is intentional, not churn to avoid (see the design doc's phase sequencing rationale).
+- Consumes: `missing_fields` (Task 4), `LLM.complete()` (existing).
+- Produces: `generate_clarify_reply(user_message: str, prefs: StructuredPrefs, llm: LLM) -> str`, `CLARIFY_TEXT: str` (fallback constant). Consumed by Task 6's `graph.py`. **Note:** this task's non-streaming version ships in Phase 2; Task 13 (Phase 4) replaces it with a streaming variant — this is intentional, not churn to avoid (see the design doc's phase sequencing rationale).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -640,7 +640,7 @@ git commit -m "feat: generate natural clarify replies instead of static text"
 
 ---
 
-## Task 3: Persist preferences across conversations
+## Task 6: Persist preferences across conversations
 
 **Files:**
 - Modify: `apps/api/lewis_api/agent/graph.py`
@@ -649,8 +649,8 @@ git commit -m "feat: generate natural clarify replies instead of static text"
 - Modify: `apps/api/tests/test_chat.py`
 
 **Interfaces:**
-- Consumes: `CLARIFY_TEXT`, `generate_clarify_reply` (Task 2).
-- Produces: `run_agent(..., prior_prefs: StructuredPrefs, ...)` — now requires a `prior_prefs` kwarg, and its terminal `done` event gains a `"prefs"` key with the final merged preferences. This is the contract Phase 4 Task 3 builds on.
+- Consumes: `CLARIFY_TEXT`, `generate_clarify_reply` (Task 5).
+- Produces: `run_agent(..., prior_prefs: StructuredPrefs, ...)` — now requires a `prior_prefs` kwarg, and its terminal `done` event gains a `"prefs"` key with the final merged preferences. This is the contract Task 14 (Phase 4) builds on.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -928,7 +928,7 @@ git commit -m "feat: persist structured_prefs across conversations"
 
 ---
 
-## Task 4: Agent-initiated first message
+## Task 7: Agent-initiated first message
 
 **Files:**
 - Create: `apps/web/src/lib/greeting.ts`
@@ -938,7 +938,7 @@ git commit -m "feat: persist structured_prefs across conversations"
 
 **Interfaces:**
 - Consumes: `Profile` type (existing `types.ts`), `useProfile()` (existing `queries.ts`).
-- Produces: `greetingText(profile: Profile): string`. Rendered as a `narrative`-kind `Item` in `Chat.tsx` — this is the last shape Phase 4 Task 4 changes (from a plain dispatch to a `"finalize"` action).
+- Produces: `greetingText(profile: Profile): string`. Rendered as a `narrative`-kind `Item` in `Chat.tsx` — this is the last shape Task 15 (Phase 4) changes (from a plain dispatch to a `"finalize"` action).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1248,7 +1248,7 @@ git commit -m "feat: Lewis greets first, personalized for returning users"
 
 No behavior changes in this phase — every task below only changes `className` strings (plus one CSS file). Text, `aria-label`s, roles, and `href`/`to` targets are preserved everywhere, so no existing test needs new assertions; each task's "test" step is re-running the existing suite as a regression guard. Final visual confirmation happens in the browser-preview step at the end of this document.
 
-## Task 1: Design tokens
+## Task 8: Design tokens
 
 **Files:**
 - Modify: `apps/web/src/index.css`
@@ -1295,7 +1295,7 @@ git commit -m "feat: add chat-first design tokens"
 
 ---
 
-## Task 2: Restyle entry surfaces (AppLayout, Login, Signup, Onboarding)
+## Task 9: Restyle entry surfaces (AppLayout, Login, Signup, Onboarding)
 
 **Files:**
 - Modify: `apps/web/src/components/AppLayout.tsx`
@@ -1304,7 +1304,7 @@ git commit -m "feat: add chat-first design tokens"
 - Modify: `apps/web/src/pages/Onboarding.tsx`
 
 **Interfaces:**
-- Consumes: tokens from Task 1 (`bg-page`, `bg-surface`, `text-fg`, `text-muted`, `border-border`, `bg-accent`/`text-accent`/`text-accent-foreground`, `text-error`, `rounded-bubble`, `shadow-soft`).
+- Consumes: tokens from Task 8 (`bg-page`, `bg-surface`, `text-fg`, `text-muted`, `border-border`, `bg-accent`/`text-accent`/`text-accent-foreground`, `text-error`, `rounded-bubble`, `shadow-soft`).
 
 - [ ] **Step 1: Restyle `AppLayout.tsx`**
 
@@ -1545,7 +1545,7 @@ git commit -m "style: apply chat-first theme to entry surfaces"
 
 ---
 
-## Task 3: Restyle the chat surface (Chat, CompactJobRow, Spinner)
+## Task 10: Restyle the chat surface (Chat, CompactJobRow, Spinner)
 
 **Files:**
 - Modify: `apps/web/src/pages/Chat.tsx`
@@ -1554,7 +1554,7 @@ git commit -m "style: apply chat-first theme to entry surfaces"
 
 - [ ] **Step 1: Restyle `Chat.tsx`**
 
-In `apps/web/src/pages/Chat.tsx` (as it stands after Phase 2 Task 4), replace only the `return (...)` JSX block with:
+In `apps/web/src/pages/Chat.tsx` (as it stands after Task 7 / Phase 2), replace only the `return (...)` JSX block with:
 
 ```tsx
   return (
@@ -1667,7 +1667,7 @@ git commit -m "style: apply chat-first theme to the chat surface"
 
 ---
 
-## Task 4: Restyle the saved-jobs surface (Saved, JobCard)
+## Task 11: Restyle the saved-jobs surface (Saved, JobCard)
 
 **Files:**
 - Modify: `apps/web/src/pages/Saved.tsx`
@@ -1762,14 +1762,14 @@ git commit -m "style: apply chat-first theme to the saved-jobs surface"
 
 # Phase 4 — Real token streaming
 
-## Task 1: `LLM.stream()` capability
+## Task 12: `LLM.stream()` capability
 
 **Files:**
 - Modify: `apps/api/lewis_api/agent/llm.py`
 - Modify: `apps/api/tests/agent/test_llm.py`
 
 **Interfaces:**
-- Produces: `LLM.stream(system: str, user: str) -> AsyncIterator[str]`, replacing `LLM.complete()` (removed — after this plan's Task 2, nothing calls `complete()` anymore). Consumed by Task 2's `narrate.py`/`clarify.py`.
+- Produces: `LLM.stream(system: str, user: str) -> AsyncIterator[str]`, replacing `LLM.complete()` (removed — after Task 13, nothing calls `complete()` anymore). Consumed by Task 13's `narrate.py`/`clarify.py`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1941,7 +1941,7 @@ git commit -m "feat: add LLM.stream(), remove now-unused complete()"
 
 ---
 
-## Task 2: Streaming narrative & clarify generation
+## Task 13: Streaming narrative & clarify generation
 
 **Files:**
 - Modify: `apps/api/lewis_api/agent/narrate.py`
@@ -1950,8 +1950,8 @@ git commit -m "feat: add LLM.stream(), remove now-unused complete()"
 - Modify: `apps/api/tests/agent/test_clarify.py`
 
 **Interfaces:**
-- Consumes: `LLM.stream()` (Task 1).
-- Produces: `stream_narrative_results(...) -> AsyncIterator[str]`, `fallback_text(n: int) -> str` (replacing `narrate_results`); `stream_clarify_reply(...) -> AsyncIterator[str]` (replacing `generate_clarify_reply`, keeping `CLARIFY_TEXT`). Both raise on LLM failure — callers (Task 3's `graph.py`) handle fallback. Consumed by Task 3.
+- Consumes: `LLM.stream()` (Task 12).
+- Produces: `stream_narrative_results(...) -> AsyncIterator[str]`, `fallback_text(n: int) -> str` (replacing `narrate_results`); `stream_clarify_reply(...) -> AsyncIterator[str]` (replacing `generate_clarify_reply`, keeping `CLARIFY_TEXT`). Both raise on LLM failure — callers (Task 14's `graph.py`) handle fallback. Consumed by Task 14.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -2231,15 +2231,15 @@ git commit -m "feat: switch narrative and clarify generation to streaming"
 
 ---
 
-## Task 3: Wire streaming into the graph
+## Task 14: Wire streaming into the graph
 
 **Files:**
 - Modify: `apps/api/lewis_api/agent/graph.py`
 - Modify: `apps/api/tests/agent/test_graph.py`
 
 **Interfaces:**
-- Consumes: `stream_narrative_results`, `fallback_text` (Task 2), `stream_clarify_reply`, `CLARIFY_TEXT` (Task 2).
-- Produces: two new SSE event types on the wire — `{"type": "narrative_delta", "text": str}` and `{"type": "clarify_delta", "text": str}` — sent before the existing terminal `narrative`/`clarify` events, which are unchanged in shape. Consumed by Task 4's frontend.
+- Consumes: `stream_narrative_results`, `fallback_text` (Task 13), `stream_clarify_reply`, `CLARIFY_TEXT` (Task 13).
+- Produces: two new SSE event types on the wire — `{"type": "narrative_delta", "text": str}` and `{"type": "clarify_delta", "text": str}` — sent before the existing terminal `narrative`/`clarify` events, which are unchanged in shape. Consumed by Task 15's frontend.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -2398,7 +2398,7 @@ git commit -m "feat: stream narrative and clarify text over SSE"
 
 ---
 
-## Task 4: Frontend delta rendering
+## Task 15: Frontend delta rendering
 
 **Files:**
 - Modify: `apps/web/src/types.ts`
@@ -2406,7 +2406,7 @@ git commit -m "feat: stream narrative and clarify text over SSE"
 - Modify: `apps/web/src/pages/Chat.test.tsx`
 
 **Interfaces:**
-- Consumes: `narrative_delta`/`clarify_delta` SSE events (Task 3).
+- Consumes: `narrative_delta`/`clarify_delta` SSE events (Task 14).
 
 - [ ] **Step 1: Write the failing tests**
 
