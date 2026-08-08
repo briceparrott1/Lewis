@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 
+from lewis_api.agent.clarify import generate_clarify_reply
 from lewis_api.agent.narrate import narrate_results
 from lewis_api.agent.normalize import job_key
 from lewis_api.agent.prefilter import prefilter
@@ -11,16 +12,11 @@ from lewis_api.agent.prefs import is_sufficient, parse_prefs
 from lewis_api.agent.rank import rank_jobs
 from lewis_api.agent.select_results import select_results
 from lewis_api.agent.seniority import filter_by_seniority
-from lewis_api.agent.state import AgentState
+from lewis_api.agent.state import AgentState, StructuredPrefs
 from lewis_api.agent.tracing import langfuse_run_config
 from lewis_api.config import get_settings
 
 logger = logging.getLogger(__name__)
-
-CLARIFY_TEXT = (
-    "To narrow this down: which locations are you targeting, or is remote OK? "
-    "And what seniority (e.g. new grad, mid, senior)?"
-)
 
 
 def build_graph(llm, fetch_boards, seed, checkpointer):
@@ -48,8 +44,11 @@ def build_graph(llm, fetch_boards, seed, checkpointer):
         return "clarify"
 
     async def clarify(state: AgentState) -> dict:
-        get_stream_writer()({"type": "clarify", "question": CLARIFY_TEXT})
-        return {"clarified_once": True, "clarify_question": CLARIFY_TEXT}
+        question = await generate_clarify_reply(
+            state["new_message"], state["prefs"], llm
+        )
+        get_stream_writer()({"type": "clarify", "question": question})
+        return {"clarified_once": True, "clarify_question": question}
 
     async def search(state: AgentState) -> dict:
         writer = get_stream_writer()
@@ -113,6 +112,7 @@ async def run_agent(
     *,
     user_id: str,
     resume_text: str,
+    prior_prefs: StructuredPrefs,
     served_keys: list[str],
     message: str,
     thread_id: str,
@@ -123,6 +123,7 @@ async def run_agent(
     inputs = {
         "user_id": user_id,
         "resume_text": resume_text,
+        "prefs": prior_prefs,
         "served_keys": served_keys,
         "new_message": message,
         "user_name": user_name,
@@ -132,8 +133,10 @@ async def run_agent(
         if event.get("type") == "result":
             shown.append(event["job"])
         yield event
+    snapshot = await graph.aget_state(config)
     yield {
         "type": "done",
         "count": len(shown),
         "served_keys": [job_key(j) for j in shown],
+        "prefs": snapshot.values.get("prefs", {}),
     }

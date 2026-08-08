@@ -30,7 +30,7 @@ async def chat(
 ) -> StreamingResponse:
     profile = await session.get(UserProfile, user.id)
     resume_text = (profile.resume_text if profile else "") or ""
-    prior_prefs = (profile.structured_prefs if profile else {}) or {}  # noqa: F841
+    prior_prefs = (profile.structured_prefs if profile else {}) or {}
     user_name = (profile.name if profile else None) or None
     served_rows = await session.scalars(
         select(ServedJob.job_key).where(ServedJob.user_id == user.id)
@@ -42,10 +42,12 @@ async def chat(
 
     async def gen():
         newly_served: list[str] = []
+        final_prefs = prior_prefs
         async for event in run_agent(
             graph,
             user_id=str(user_id),
             resume_text=resume_text,
+            prior_prefs=prior_prefs,
             served_keys=served_keys,
             message=body.message,
             thread_id=thread_id,
@@ -53,6 +55,7 @@ async def chat(
         ):
             if event["type"] == "done":
                 newly_served = event.get("served_keys", [])
+                final_prefs = event.get("prefs", prior_prefs)
             yield _frame(event)
 
         # Use a fresh, request-independent session: the request-scoped `session`
@@ -61,16 +64,23 @@ async def chat(
         # and guard the commit so a duplicate/constraint error can't crash the
         # stream after results have already been sent to the client.
         deduped = list(dict.fromkeys(newly_served))
-        if deduped:
-            async with async_session_maker() as write_session:
-                for key in deduped:
-                    write_session.add(ServedJob(user_id=user_id, job_key=key))
-                try:
-                    await write_session.commit()
-                except Exception:
-                    logger.exception(
-                        "Failed to record served jobs for user %s", user_id
+        async with async_session_maker() as write_session:
+            for key in deduped:
+                write_session.add(ServedJob(user_id=user_id, job_key=key))
+            try:
+                write_profile = await write_session.get(UserProfile, user_id)
+                if write_profile is None:
+                    write_profile = UserProfile(
+                        user_id=user_id, structured_prefs=final_prefs
                     )
-                    await write_session.rollback()
+                    write_session.add(write_profile)
+                else:
+                    write_profile.structured_prefs = final_prefs
+                await write_session.commit()
+            except Exception:
+                logger.exception(
+                    "Failed to record served jobs / preferences for user %s", user_id
+                )
+                await write_session.rollback()
 
     return StreamingResponse(gen(), media_type="text/event-stream")

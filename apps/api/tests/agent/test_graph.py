@@ -71,6 +71,7 @@ async def test_clear_query_streams_results_and_reports_served():
             graph,
             user_id="u1",
             resume_text="r",
+            prior_prefs={},
             served_keys=[],
             message="FDE in SF",
             thread_id="u1:c1",
@@ -102,6 +103,7 @@ async def test_vague_query_asks_one_clarify_then_searches():
             graph,
             user_id="u1",
             resume_text="r",
+            prior_prefs={},
             served_keys=[],
             message="I want a tech job",
             thread_id="u1:c2",
@@ -112,12 +114,14 @@ async def test_vague_query_asks_one_clarify_then_searches():
     assert "clarify" in types_first and types_first[-1] == "done"
 
     # second turn, same thread — now proceeds (clarified_once persists)
+    first_prefs = first[-1]["prefs"]
     second = [
         e
         async for e in run_agent(
             graph,
             user_id="u1",
             resume_text="r",
+            prior_prefs=first_prefs,
             served_keys=[],
             message="in SF",
             thread_id="u1:c2",
@@ -143,6 +147,7 @@ async def test_served_jobs_excluded():
             graph,
             user_id="u1",
             resume_text="r",
+            prior_prefs={},
             served_keys=["https://jobs.ashbyhq.com/ramp/1"],  # already served
             message="FDE in SF",
             thread_id="u1:c3",
@@ -215,6 +220,7 @@ async def test_respond_applies_company_diversity_cap():
             graph,
             user_id="u1",
             resume_text="r",
+            prior_prefs={},
             served_keys=[],
             message="SWE in SF",
             thread_id="u1:c4",
@@ -285,6 +291,7 @@ async def test_respond_excludes_seniority_mismatch():
             graph,
             user_id="u1",
             resume_text="r",
+            prior_prefs={},
             served_keys=[],
             message="senior SWE in SF",
             thread_id="u1:c5",
@@ -292,3 +299,27 @@ async def test_respond_excludes_seniority_mismatch():
     ]
     results = [e["job"] for e in events if e["type"] == "result"]
     assert [j["external_id"] for j in results] == ["senior-role"]
+
+
+@pytest.mark.asyncio
+async def test_done_event_reports_final_merged_prefs():
+    graph, _llm = _graph(
+        {"role_keywords": ["fde"], "locations": ["SF"], "required": ["role"]},
+        {"rankings": []},
+    )
+    events = [
+        e
+        async for e in run_agent(
+            graph,
+            user_id="u1",
+            resume_text="r",
+            prior_prefs={"remote_ok": True},
+            served_keys=[],
+            message="FDE in SF",
+            thread_id="u1:c6",
+        )
+    ]
+    done = events[-1]
+    assert done["type"] == "done"
+    assert done["prefs"]["role_keywords"] == ["fde"]
+    assert done["prefs"]["remote_ok"] is True  # prior preserved
