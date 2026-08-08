@@ -227,6 +227,25 @@ describe("Chat", () => {
     });
   });
 
+  it("invalidates the profile cache after a chat turn completes, so a later greeting can pick up newly learned prefs", async () => {
+    vi.mocked(streamChat).mockImplementation(
+      async (_body: unknown, onEvent: (e: ChatEvent) => void) => {
+        onEvent({ type: "narrative", text: "Got it, noted." });
+        onEvent({ type: "done", count: 0 });
+      },
+    );
+    renderChat();
+    // Wait for the initial greeting so the first /profile fetch has resolved.
+    await screen.findByText(/Tell me what kind of role you're looking for/);
+    const fetchMock = vi.mocked(fetch);
+    const callsBefore = fetchMock.mock.calls.length;
+    await sendMessage("FDE in SF");
+    await screen.findByText("Got it, noted.");
+    await waitFor(() => {
+      expect(fetchMock.mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+  });
+
   it("streams a clarify reply incrementally", async () => {
     vi.mocked(streamChat).mockImplementation(
       async (_body: unknown, onEvent: (e: ChatEvent) => void) => {

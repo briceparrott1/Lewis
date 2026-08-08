@@ -1,4 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { streamChat } from "../lib/sse";
 import { greetingText } from "../lib/greeting";
 import { CompactJobRow } from "../components/CompactJobRow";
@@ -54,6 +55,7 @@ export function Chat() {
   const greetedConvos = useRef<Set<string>>(new Set());
   const { data: profile } = useProfile();
   const save = useSaveJob();
+  const qc = useQueryClient();
   const tickerText = useStatusTicker(busy, statusText);
 
   useEffect(() => () => abort.current?.abort(), []);
@@ -104,6 +106,7 @@ export function Chat() {
     } finally {
       setBusy(false);
       setStatusText(null);
+      qc.invalidateQueries({ queryKey: ["profile"] });
     }
   }
 
