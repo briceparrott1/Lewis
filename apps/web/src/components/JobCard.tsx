@@ -9,24 +9,24 @@ export function JobCard({
   busy?: boolean;
 }) {
   return (
-    <div className="rounded-lg border p-4 shadow-sm">
+    <div className="rounded-bubble border border-border bg-surface p-4 shadow-soft">
       <div className="flex items-start justify-between gap-3">
         <div>
           <a href={job.url} target="_blank" rel="noreferrer"
-            className="font-semibold text-blue-700 hover:underline">{job.title}</a>
-          <p className="text-sm text-gray-600">
+            className="font-semibold text-accent hover:underline">{job.title}</a>
+          <p className="text-sm text-muted">
             {job.company}{job.location ? ` · ${job.location}` : ""}
           </p>
         </div>
         {typeof job.score === "number" && (
-          <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+          <span className="rounded-full bg-success-foreground px-2 py-1 text-xs font-medium text-success">
             {job.score}
           </span>
         )}
       </div>
-      {job.reason && <p className="mt-2 text-sm text-gray-700">{job.reason}</p>}
+      {job.reason && <p className="mt-2 text-sm text-fg">{job.reason}</p>}
       <button onClick={onAction} disabled={busy}
-        className="mt-3 rounded border px-3 py-1 text-sm hover:bg-gray-50">
+        className="mt-3 rounded-lg border border-border px-3 py-1 text-sm text-fg hover:bg-page">
         {action === "save" ? "Save" : "Remove"}
       </button>
     </div>
