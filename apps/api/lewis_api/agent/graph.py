@@ -4,8 +4,8 @@ from collections.abc import AsyncIterator
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 
-from lewis_api.agent.clarify import generate_clarify_reply
-from lewis_api.agent.narrate import narrate_results
+from lewis_api.agent.clarify import CLARIFY_TEXT, stream_clarify_reply
+from lewis_api.agent.narrate import fallback_text, stream_narrative_results
 from lewis_api.agent.normalize import job_key
 from lewis_api.agent.prefilter import prefilter
 from lewis_api.agent.prefs import is_sufficient, parse_prefs
@@ -44,11 +44,18 @@ def build_graph(llm, fetch_boards, seed, checkpointer):
         return "clarify"
 
     async def clarify(state: AgentState) -> dict:
-        question = await generate_clarify_reply(
-            state["new_message"], state["prefs"], llm
-        )
-        get_stream_writer()({"type": "clarify", "question": question})
-        return {"clarified_once": True, "clarify_question": question}
+        writer = get_stream_writer()
+        full_text = ""
+        try:
+            async for chunk in stream_clarify_reply(
+                state["new_message"], state["prefs"], llm
+            ):
+                full_text += chunk
+                writer({"type": "clarify_delta", "text": chunk})
+        except Exception:  # noqa: BLE001
+            full_text = CLARIFY_TEXT
+        writer({"type": "clarify", "question": full_text})
+        return {"clarified_once": True, "clarify_question": full_text}
 
     async def search(state: AgentState) -> dict:
         writer = get_stream_writer()
@@ -78,14 +85,20 @@ def build_graph(llm, fetch_boards, seed, checkpointer):
             len(top),
         )
         writer({"type": "status", "text": "Writing up what I found…"})
-        narrative = await narrate_results(
-            top,
-            state["prefs"],
-            state.get("resume_text", ""),
-            state.get("user_name"),
-            llm,
-        )
-        writer({"type": "narrative", "text": narrative})
+        full_text = ""
+        try:
+            async for chunk in stream_narrative_results(
+                top,
+                state["prefs"],
+                state.get("resume_text", ""),
+                state.get("user_name"),
+                llm,
+            ):
+                full_text += chunk
+                writer({"type": "narrative_delta", "text": chunk})
+        except Exception:  # noqa: BLE001
+            full_text = fallback_text(len(top))
+        writer({"type": "narrative", "text": full_text})
         for job in top:
             writer({"type": "result", "job": job})
         return {"ranked": top}

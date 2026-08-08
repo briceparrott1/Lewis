@@ -12,16 +12,17 @@ class FakeLLM:
         self.prefs_payload = prefs_payload
         self.rank_payload = rank_payload
         self.narrative_text = narrative_text
-        self.complete_calls = []
+        self.stream_calls = []
 
     async def structured(self, system, user, tool_name, schema):
         if tool_name == "record_preferences":
             return self.prefs_payload
         return self.rank_payload
 
-    async def complete(self, system, user):
-        self.complete_calls.append(user)
-        return self.narrative_text
+    async def stream(self, system, user):
+        self.stream_calls.append(user)
+        for chunk in self.narrative_text.split(" "):
+            yield chunk + " "
 
 
 async def _fake_fetch(entries, client):
@@ -86,9 +87,11 @@ async def test_clear_query_streams_results_and_reports_served():
     results = [e for e in events if e["type"] == "result"]
     assert results[0]["job"]["title"] == "Forward Deployed Engineer"  # barista filtered
     assert events[-1]["served_keys"] == ["https://jobs.ashbyhq.com/ramp/1"]
-    # Proves the run_agent -> AgentState -> respond -> narrate_results hop
-    # actually threads user_name through, not just the two endpoints.
-    assert any("Brice" in call for call in llm.complete_calls)
+    # Proves the run_agent -> AgentState -> respond -> stream_narrative_results
+    # hop actually threads user_name through, not just the two endpoints.
+    assert any("Brice" in call for call in llm.stream_calls)
+    assert "narrative_delta" in types
+    assert types.index("narrative_delta") < types.index("narrative")
 
 
 @pytest.mark.asyncio
@@ -111,6 +114,8 @@ async def test_vague_query_asks_one_clarify_then_searches():
     ]
     types_first = [e["type"] for e in first]
     assert first[0]["type"] == "status"  # "Reading your resume..." comes first now
+    assert "clarify_delta" in types_first
+    assert types_first.index("clarify_delta") < types_first.index("clarify")
     assert "clarify" in types_first and types_first[-1] == "done"
 
     # second turn, same thread — now proceeds (clarified_once persists)
