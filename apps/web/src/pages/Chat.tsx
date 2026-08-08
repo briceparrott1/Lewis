@@ -1,5 +1,4 @@
 import { useEffect, useReducer, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { streamChat } from "../lib/sse";
 import { CompactJobRow } from "../components/CompactJobRow";
 import { Spinner } from "../components/Spinner";
@@ -77,10 +76,7 @@ export function Chat() {
     <div className="mx-auto flex max-w-2xl flex-col gap-3 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Find roles</h1>
-        <div className="flex gap-3 text-sm">
-          <Link className="text-blue-600" to="/saved">Saved jobs</Link>
-          <button className="text-gray-600" onClick={newChat}>New chat</button>
-        </div>
+        <button className="text-sm text-gray-600" onClick={newChat}>New chat</button>
       </div>
       <div className="flex flex-col gap-3">
         {items.map((it, i) => {
