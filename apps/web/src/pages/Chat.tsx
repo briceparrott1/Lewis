@@ -1,9 +1,10 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { streamChat } from "../lib/sse";
+import { greetingText } from "../lib/greeting";
 import { CompactJobRow } from "../components/CompactJobRow";
 import { Spinner } from "../components/Spinner";
 import { useStatusTicker } from "../lib/useStatusTicker";
-import { useSaveJob } from "../queries";
+import { useProfile, useSaveJob } from "../queries";
 import type { ChatEvent, RankedJob } from "../types";
 
 type Item =
@@ -26,10 +27,18 @@ export function Chat() {
   const gotNarrative = useRef(false);
   const gotClarify = useRef(false);
   const abort = useRef<AbortController | null>(null);
+  const greetedConvos = useRef<Set<string>>(new Set());
+  const { data: profile } = useProfile();
   const save = useSaveJob();
   const tickerText = useStatusTicker(busy, statusText);
 
   useEffect(() => () => abort.current?.abort(), []);
+
+  useEffect(() => {
+    if (!profile || greetedConvos.current.has(convo)) return;
+    greetedConvos.current.add(convo);
+    dispatch({ kind: "narrative", text: greetingText(profile) });
+  }, [convo, profile]);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();

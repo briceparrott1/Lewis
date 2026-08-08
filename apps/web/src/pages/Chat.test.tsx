@@ -1,10 +1,10 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Chat } from "./Chat";
-import type { ChatEvent } from "../types";
+import type { ChatEvent, Profile } from "../types";
 
 vi.mock("../lib/sse", () => ({
   streamChat: vi.fn(),
@@ -12,7 +12,24 @@ vi.mock("../lib/sse", () => ({
 
 import { streamChat } from "../lib/sse";
 
-function renderChat() {
+function stubProfileFetch(overrides: Partial<Profile> = {}) {
+  const body: Profile = {
+    name: null,
+    resume_text: "resume",
+    raw_prefs_text: null,
+    structured_prefs: {},
+    ...overrides,
+  };
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => new Response(JSON.stringify(body), {
+      headers: { "content-type": "application/json" },
+    })),
+  );
+}
+
+function renderChat(profileOverrides: Partial<Profile> = {}) {
+  stubProfileFetch(profileOverrides);
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={qc}>
@@ -20,6 +37,11 @@ function renderChat() {
     </QueryClientProvider>,
   );
 }
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.clearAllMocks();
+});
 
 async function sendMessage(text: string) {
   await userEvent.type(screen.getByPlaceholderText(/new grad/i), text);
@@ -143,5 +165,20 @@ describe("Chat", () => {
     expect(
       await screen.findByText("I didn't find any roles matching that this time."),
     ).toBeInTheDocument();
+  });
+
+  it("shows a personalized greeting for a returning user with known preferences", async () => {
+    renderChat({ name: "Brice", structured_prefs: { role_keywords: ["FDE"], locations: ["SF"] } });
+    expect(
+      await screen.findByText(/Last time you were looking for FDE in SF/),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a generic prompt for a new user with no stored preferences, with no LLM call", async () => {
+    renderChat();
+    expect(
+      await screen.findByText(/Tell me what kind of role you're looking for/),
+    ).toBeInTheDocument();
+    expect(streamChat).not.toHaveBeenCalled();
   });
 });
