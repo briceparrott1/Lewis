@@ -54,6 +54,8 @@ def build_graph(llm, fetch_boards, seed, checkpointer):
                 writer({"type": "clarify_delta", "text": chunk})
         except Exception:  # noqa: BLE001
             full_text = CLARIFY_TEXT
+        if not full_text.strip():
+            full_text = CLARIFY_TEXT
         writer({"type": "clarify", "question": full_text})
         return {"clarified_once": True, "clarify_question": full_text}
 
@@ -97,6 +99,8 @@ def build_graph(llm, fetch_boards, seed, checkpointer):
                 full_text += chunk
                 writer({"type": "narrative_delta", "text": chunk})
         except Exception:  # noqa: BLE001
+            full_text = fallback_text(len(top))
+        if not full_text.strip():
             full_text = fallback_text(len(top))
         writer({"type": "narrative", "text": full_text})
         for job in top:

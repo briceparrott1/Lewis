@@ -1,17 +1,24 @@
 import pytest
 from langgraph.checkpoint.memory import MemorySaver
 
+from lewis_api.agent.clarify import CLARIFY_TEXT
 from lewis_api.agent.graph import build_graph, run_agent
+from lewis_api.agent.narrate import fallback_text
 from lewis_api.agent.sources.seed import SeedEntry
 
 
 class FakeLLM:
     def __init__(
-        self, prefs_payload, rank_payload, narrative_text="Here's what I found."
+        self,
+        prefs_payload,
+        rank_payload,
+        narrative_text="Here's what I found.",
+        empty_stream=False,
     ):
         self.prefs_payload = prefs_payload
         self.rank_payload = rank_payload
         self.narrative_text = narrative_text
+        self.empty_stream = empty_stream
         self.stream_calls = []
 
     async def structured(self, system, user, tool_name, schema):
@@ -21,6 +28,8 @@ class FakeLLM:
 
     async def stream(self, system, user):
         self.stream_calls.append(user)
+        if self.empty_stream:
+            return
         for chunk in self.narrative_text.split(" "):
             yield chunk + " "
 
@@ -328,3 +337,62 @@ async def test_done_event_reports_final_merged_prefs():
     assert done["type"] == "done"
     assert done["prefs"]["role_keywords"] == ["fde"]
     assert done["prefs"]["remote_ok"] is True  # prior preserved
+
+
+@pytest.mark.asyncio
+async def test_clarify_falls_back_when_stream_yields_nothing():
+    llm = FakeLLM(
+        {"role_keywords": ["engineer"]},  # no location/remote → insufficient
+        {"rankings": []},
+        empty_stream=True,
+    )
+    seed = [SeedEntry("Ramp", "ashby", "ramp")]
+    graph = build_graph(llm, _fake_fetch, seed, MemorySaver())
+    events = [
+        e
+        async for e in run_agent(
+            graph,
+            user_id="u1",
+            resume_text="r",
+            prior_prefs={},
+            served_keys=[],
+            message="I want a tech job",
+            thread_id="u1:c7",
+        )
+    ]
+    clarify_events = [e for e in events if e["type"] == "clarify"]
+    assert len(clarify_events) == 1
+    assert clarify_events[0]["question"] == CLARIFY_TEXT
+    assert clarify_events[0]["question"].strip() != ""
+
+
+@pytest.mark.asyncio
+async def test_respond_falls_back_when_stream_yields_nothing():
+    llm = FakeLLM(
+        {
+            "role_keywords": ["forward deployed"],
+            "locations": ["SF"],
+            "required": ["role"],
+        },
+        {"rankings": [{"external_id": "1", "score": 90, "reason": "great FDE"}]},
+        empty_stream=True,
+    )
+    seed = [SeedEntry("Ramp", "ashby", "ramp")]
+    graph = build_graph(llm, _fake_fetch, seed, MemorySaver())
+    events = [
+        e
+        async for e in run_agent(
+            graph,
+            user_id="u1",
+            resume_text="r",
+            prior_prefs={},
+            served_keys=[],
+            message="FDE in SF",
+            thread_id="u1:c8",
+        )
+    ]
+    narrative_events = [e for e in events if e["type"] == "narrative"]
+    results = [e for e in events if e["type"] == "result"]
+    assert len(narrative_events) == 1
+    assert narrative_events[0]["text"] == fallback_text(len(results))
+    assert narrative_events[0]["text"].strip() != ""
