@@ -4,7 +4,7 @@
 
 ## 🔵 Open PR — Needs Your Merge Decision
 
-**UI/UX overhaul** — branch `worktree-ui-ux-overhaul`, worktree at `.claude/worktrees/ui-ux-overhaul`. PR not yet opened; see "How to Continue" below (opening it is the next action in this session).
+**[PR #2](https://github.com/briceparrott1/Lewis/pull/2) — UI/UX overhaul**, branch `worktree-ui-ux-overhaul`, worktree at `.claude/worktrees/ui-ux-overhaul`.
 
 Four phases, each independently shippable, built via brainstorm → spec (`docs/superpowers/specs/2026-08-07-ui-ux-overhaul-design.md`) → plan (`docs/superpowers/plans/2026-08-07-ui-ux-overhaul.md`, 15 tasks) → subagent-driven implementation → per-task reviews → final whole-branch review (opus) → one fix wave → clean:
 
@@ -70,7 +70,7 @@ Optional retrospective tracing for agent chat sessions (node sequence + per-call
 ### In a Fresh Context
 1. Read this file
 2. Check memory files in `/Users/briceparrott/.claude/projects/-Users-briceparrott-coding-projects-Lewis/memory/`
-3. If the UI/UX overhaul PR isn't open yet: `cd` into `.claude/worktrees/ui-ux-overhaul`, push the branch, and open a PR against `main` (work is complete and verified — this is just the mechanical push+PR step)
+3. [PR #2](https://github.com/briceparrott1/Lewis/pull/2) is open and ready for review/merge — that decision is yours
 4. Once that's merged, next natural work is **Expand Seed List** — self-contained, directly fixes the 0-results UX gap
 
 ### If You Hit Issues
@@ -99,4 +99,4 @@ Optional retrospective tracing for agent chat sessions (node sequence + per-call
 ---
 
 **Last updated**: 2026-08-08
-**Ready for**: Pushing the `worktree-ui-ux-overhaul` branch and opening a PR (work complete, gated only on your merge decision per your standing preference).
+**Ready for**: Your review and merge decision on [PR #2](https://github.com/briceparrott1/Lewis/pull/2).
