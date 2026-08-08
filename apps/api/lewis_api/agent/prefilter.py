@@ -1,9 +1,16 @@
 from lewis_api.agent.state import Job, StructuredPrefs
 
 
+def _normalize(text: str) -> str:
+    """Collapse hyphen/underscore/whitespace variance so role-keyword
+    matching isn't tripped up by title phrasing (e.g. "Full-Stack" vs
+    "full stack")."""
+    return " ".join(text.strip().lower().replace("-", " ").replace("_", " ").split())
+
+
 def _kw_hit(text: str, keywords: list[str]) -> bool:
-    low = text.lower()
-    return any(k.lower() in low for k in keywords)
+    low = _normalize(text)
+    return any(_normalize(k) in low for k in keywords)
 
 
 def _weight(dimension: str, priorities: list[str]) -> float:
@@ -43,7 +50,7 @@ def _passes_required(job: Job, prefs: StructuredPrefs) -> bool:
     return True
 
 
-def prefilter(jobs: list[Job], prefs: StructuredPrefs, *, cap: int = 50) -> list[Job]:
+def prefilter(jobs: list[Job], prefs: StructuredPrefs, *, cap: int = 150) -> list[Job]:
     roles = prefs.get("role_keywords", [])
     scored: list[tuple[float, Job]] = []
     for job in jobs:

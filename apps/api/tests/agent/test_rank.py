@@ -71,3 +71,21 @@ async def test_rank_includes_seniority_and_falls_back_to_unknown():
     assert by_id["1"]["seniority"] == "new_grad"
     assert by_id["2"]["seniority"] == "unknown"
     assert by_id["3"]["seniority"] == "unknown"
+
+
+@pytest.mark.asyncio
+async def test_rank_drops_candidates_omitted_entirely_from_llm_response():
+    cands = [
+        {"external_id": "1", "title": "FDE", "url": "u1", "description": "x"},
+        {"external_id": "2", "title": "SE", "url": "u2", "description": "y"},
+    ]
+    llm = FakeLLM(
+        {
+            "rankings": [
+                {"external_id": "1", "score": 60, "reason": "ok", "seniority": "mid"},
+                # "2" entirely absent from the LLM's response
+            ]
+        }
+    )
+    out = await rank_jobs(cands, {}, "resume", llm)
+    assert [j["external_id"] for j in out] == ["1"]

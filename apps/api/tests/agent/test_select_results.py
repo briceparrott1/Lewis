@@ -1,12 +1,13 @@
 from lewis_api.agent.select_results import select_results
 
 
-def _job(id_, company, score, seniority="unknown"):
+def _job(id_, company, score, seniority="unknown", industry="unknown"):
     return {
         "external_id": id_,
         "company": company,
         "score": score,
         "seniority": seniority,
+        "industry": industry,
     }
 
 
@@ -43,3 +44,21 @@ def test_stops_at_max_results():
     ranked = [_job(str(i), f"Co{i}", 100 - i) for i in range(10)]
     out = select_results(ranked, {}, max_results=3)
     assert len(out) == 3
+
+
+def test_industry_cap_enforced():
+    ranked = [
+        _job("1", "A", 99, industry="fintech"),
+        _job("2", "B", 98, industry="fintech"),
+        _job("3", "C", 97, industry="fintech"),
+        _job("4", "D", 96, industry="fintech"),  # 4th fintech -> skipped
+        _job("5", "E", 50, industry="devtools"),
+    ]
+    out = select_results(ranked, {}, max_results=5)
+    assert [j["external_id"] for j in out] == ["1", "2", "3", "5"]
+
+
+def test_unknown_industry_is_unrestricted():
+    ranked = [_job(str(i), f"Co{i}", 100 - i, industry="unknown") for i in range(5)]
+    out = select_results(ranked, {}, max_results=5)
+    assert len(out) == 5  # no industry cap applied to "unknown"

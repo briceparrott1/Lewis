@@ -43,3 +43,15 @@ def test_zero_signal_dropped_and_cap_applies():
     out = prefilter(jobs, prefs, cap=2)
     assert all("fde" in j["title"].lower() for j in out)
     assert len(out) == 1
+
+
+def test_role_keyword_matches_across_hyphen_and_case_variance():
+    prefs = {"role_keywords": ["full stack"], "required": ["role"]}
+    job_hyphenated = _job("Full-Stack Engineer", "SF")
+    job_spaced = _job("Full Stack Engineer", "SF")
+    out_hyphen = prefilter([job_hyphenated], prefs)
+    out_spaced = prefilter(
+        [job_spaced], {"role_keywords": ["full-stack"], "required": ["role"]}
+    )
+    assert len(out_hyphen) == 1
+    assert len(out_spaced) == 1

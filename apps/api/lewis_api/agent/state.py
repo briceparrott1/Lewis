@@ -23,6 +23,7 @@ class Job(TypedDict, total=False):
     posted_at: str | None
     compensation: str | None
     description: str
+    industry: str
 
 
 class RankedJob(Job, total=False):
