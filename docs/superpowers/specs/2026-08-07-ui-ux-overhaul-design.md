@@ -160,7 +160,8 @@ bubble).
 Restyle using the new tokens (utility classes only — no component library
 added, keeping the existing hand-rolled Tailwind approach):
 `AppLayout` header, `Chat.tsx` message bubbles and input, `CompactJobRow.tsx`
-/ `JobCard.tsx`, `Spinner.tsx`, `Login.tsx` / `Signup.tsx` forms, `Saved.tsx`.
+/ `JobCard.tsx`, `Spinner.tsx`, `Login.tsx` / `Signup.tsx` / `Onboarding.tsx`
+forms, `Saved.tsx`.
 
 ---
 
