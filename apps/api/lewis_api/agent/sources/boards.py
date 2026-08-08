@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import time
 
 import httpx
@@ -8,6 +9,8 @@ from lewis_api.agent.sources.ashby import fetch_ashby
 from lewis_api.agent.sources.greenhouse import fetch_greenhouse
 from lewis_api.agent.sources.seed import SeedEntry, load_seed  # noqa: F401
 from lewis_api.agent.state import Job
+
+logger = logging.getLogger(__name__)
 
 _CACHE: dict[tuple[str, str], tuple[float, list[Job]]] = {}
 _TTL = 600.0
@@ -30,7 +33,7 @@ async def fetch_all_boards(
     entries: list[SeedEntry],
     client: httpx.AsyncClient | None,
     *,
-    concurrency: int = 15,
+    concurrency: int = 40,
     timeout: float = 5.0,
 ) -> list[Job]:
     sem = asyncio.Semaphore(concurrency)
@@ -39,7 +42,26 @@ async def fetch_all_boards(
         async with sem:
             try:
                 return await _fetch_one(entry, client, timeout)
-            except Exception:  # noqa: BLE001
+            except httpx.HTTPStatusError as exc:
+                if exc.response is not None and exc.response.status_code == 429:
+                    logger.warning(
+                        "rate limited fetching %s/%s", entry.source, entry.board_token
+                    )
+                else:
+                    logger.info(
+                        "board fetch failed for %s/%s: %s",
+                        entry.source,
+                        entry.board_token,
+                        exc,
+                    )
+                return []
+            except Exception as exc:  # noqa: BLE001
+                logger.info(
+                    "board fetch failed for %s/%s: %s",
+                    entry.source,
+                    entry.board_token,
+                    exc,
+                )
                 return []  # partial-failure tolerant: skip this board
 
     results = await asyncio.gather(*(guarded(e) for e in entries))
