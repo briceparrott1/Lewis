@@ -25,6 +25,9 @@ async def _fetch_one(
         return cached[1]
     fetcher = fetch_greenhouse if entry.source == "greenhouse" else fetch_ashby
     jobs = await asyncio.wait_for(fetcher(entry.board_token, client), timeout)
+    for job in jobs:
+        job["company"] = entry.company
+        job["industry"] = entry.industry
     _CACHE[key] = (time.monotonic(), jobs)
     return jobs
 

@@ -9,6 +9,7 @@ class SeedEntry:
     company: str
     source: str
     board_token: str
+    industry: str = "unknown"
 
 
 _SEED_PATH = Path(__file__).with_name("seed_companies.yaml")

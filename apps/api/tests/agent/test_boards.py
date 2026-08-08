@@ -36,6 +36,30 @@ def test_default_concurrency_is_40():
 
 
 @pytest.mark.asyncio
+async def test_fetch_attaches_entry_company_and_industry(monkeypatch):
+    async def fake_gh(token, client):
+        # fetcher returns the raw token as company, same as real fetch_greenhouse today
+        return [
+            Job(
+                source="greenhouse",
+                company=token,
+                url=f"https://x/{token}/1",
+                title="A",
+            )
+        ]
+
+    monkeypatch.setattr(boards, "fetch_greenhouse", fake_gh)
+    boards._CACHE.clear()
+
+    entry = boards.SeedEntry("GitLab", "greenhouse", "gitlab", industry="devtools")
+    jobs = await boards.fetch_all_boards([entry], client=None)
+    assert (
+        jobs[0]["company"] == "GitLab"
+    )  # overlaid with the display name, not the raw token
+    assert jobs[0]["industry"] == "devtools"
+
+
+@pytest.mark.asyncio
 async def test_rate_limited_board_logs_warning_and_fails_open(monkeypatch, caplog):
     async def fake_gh(token, client):
         request = httpx.Request("GET", "https://x")
