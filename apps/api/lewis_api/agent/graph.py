@@ -81,7 +81,8 @@ def build_graph(llm, fetch_boards, seed, checkpointer):
         eligible = filter_by_seniority(ranked, state["prefs"])
         top = select_results(eligible, state["prefs"], get_settings().max_results)
         logger.info(
-            "respond funnel: ranked=%d eligible=%d top=%d",
+            "respond funnel: candidates=%d ranked=%d eligible=%d top=%d",
+            len(state.get("candidates", [])),
             len(ranked),
             len(eligible),
             len(top),

@@ -50,7 +50,7 @@ def _passes_required(job: Job, prefs: StructuredPrefs) -> bool:
     return True
 
 
-def prefilter(jobs: list[Job], prefs: StructuredPrefs, *, cap: int = 50) -> list[Job]:
+def prefilter(jobs: list[Job], prefs: StructuredPrefs, *, cap: int = 150) -> list[Job]:
     roles = prefs.get("role_keywords", [])
     scored: list[tuple[float, Job]] = []
     for job in jobs:
